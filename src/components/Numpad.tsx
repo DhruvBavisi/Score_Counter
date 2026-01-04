@@ -9,9 +9,10 @@ interface NumpadProps {
   rowIndex?: number;
   colIndex?: number;
   playerName?: string;
+  onPanX?: (dx: number) => void;
 }
 
-export function Numpad({ value, onChange, onEnter, onClose, onMove, rowIndex, colIndex, playerName }: NumpadProps) {
+export function Numpad({ value, onChange, onEnter, onClose, onMove, rowIndex, colIndex, playerName, onPanX }: NumpadProps) {
   const handleButton = (btn: string) => {
     if (btn === 'C') {
       onChange('');
@@ -42,21 +43,24 @@ export function Numpad({ value, onChange, onEnter, onClose, onMove, rowIndex, co
     ['+/-', '0', '←'],
   ];
 
+  let startX: number | null = null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-transparent animate-fade-in" onClick={onClose}>
-      <div className="w-full max-w-sm sm:max-w-md md:max-w-lg glass-card rounded-t-3xl p-3 sm:p-4 pb-4 sm:pb-6 mb-6 safe-bottom animate-slide-up" onClick={(e) => e.stopPropagation()}>
-        {/* Context + Value */}
-        <div className="flex items-center justify-between mb-2 sm:mb-3">
-          <div className="text-xs sm:text-sm text-muted-foreground">
-            {typeof rowIndex === 'number' && typeof colIndex === 'number' ? `R${rowIndex + 1} • C${colIndex + 1}${playerName ? ` • ${playerName}` : ''}` : ''}
-          </div>
-          <div className="text-2xl sm:text-3xl font-display font-bold text-foreground min-w-[90px] sm:min-w-[100px] text-right">
-            {value || '0'}
-          </div>
-        </div>
-
-        {/* (Navigation removed as requested) */}
-
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-transparent animate-fade-in"
+      onClick={onClose}
+      onWheel={(e) => onPanX?.(e.deltaX)}
+      onTouchStart={(e) => { startX = e.touches[0].clientX; }}
+      onTouchMove={(e) => {
+        if (startX !== null) {
+          const currentX = e.touches[0].clientX;
+          const dx = startX - currentX;
+          onPanX?.(dx);
+          startX = currentX;
+        }
+      }}
+    >
+      <div className="w-full max-w-sm sm:max-w-md md:max-w-lg rounded-t-3xl p-3 sm:p-4 pb-3 sm:pb-5 mb-10 safe-bottom animate-slide-up bg-card border border-border shadow-md" onClick={(e) => e.stopPropagation()}>
         {/* Numpad Grid */}
         <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-2 sm:mb-3">
           {buttons.flat().map((btn) => (

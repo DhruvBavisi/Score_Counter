@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trophy, TrendingDown, Check, Plus, Crown, Medal, Play } from 'lucide-react';
 import { useGame, Player } from '@/contexts/GameContext';
@@ -16,6 +16,7 @@ interface RankingPlayer {
 export default function NewMatch() {
   const navigate = useNavigate();
   const { players: allPlayers, addPlayer, addGame } = useGame();
+  const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // Setup state
   const [winnerRule, setWinnerRule] = useState<'highest' | 'lowest'>('highest');
@@ -59,6 +60,16 @@ export default function NewMatch() {
   const openNumpad = (row: number, col: number) => {
     setCurrentCell({ row, col });
     setNumpadValue(scores[row][col].toString());
+  };
+
+  const handleNumpadChange = (next: string) => {
+    setNumpadValue(next);
+    if (!currentCell) return;
+    const val = next === '' ? 0 : parseInt(next, 10);
+    if (isNaN(val)) return;
+    const updated = [...scores];
+    updated[currentCell.row][currentCell.col] = val;
+    setScores(updated);
   };
 
   const moveCursor = (dir: 'up' | 'down' | 'left' | 'right') => {
@@ -327,7 +338,7 @@ export default function NewMatch() {
 
       <main className={`p-6 page-enter space-y-6 ${currentCell ? 'pb-48' : ''}`}>
         {/* Score Table */}
-        <div className="overflow-x-auto -mx-6 px-6">
+        <div className="overflow-x-auto -mx-6 px-6" ref={scrollRef}>
           <table className="w-full border-collapse min-w-max">
             <thead>
               <tr>
@@ -335,12 +346,10 @@ export default function NewMatch() {
                 {selectedPlayers.map((player, i) => (
                   <th
                     key={player.id}
-                    className={`p-2 text-center min-w-[80px] ${
-                      i === winnerIndex && gameFinished ? 'text-accent' : currentCell?.col === i ? 'text-primary' : 'text-foreground'
-                    }`}
+                    className={`p-2 text-center min-w-[80px] ${currentCell?.col === i ? 'text-primary' : 'text-foreground'}`}
                   >
                     <div className="flex flex-col items-center gap-1">
-                      {i === winnerIndex && gameFinished && <Crown className="w-4 h-4 crown-bounce text-accent" />}
+                      {i === winnerIndex && gameFinished && <Crown className="w-4 h-4 crown-bounce text-yellow-500" />}
                       <PlayerAvatar name={player.name} size="sm" isWinner={i === winnerIndex && gameFinished} />
                       <span className="text-xs font-medium truncate max-w-[70px]">{player.name}</span>
                     </div>
@@ -357,11 +366,7 @@ export default function NewMatch() {
                       <button
                         onClick={() => !gameFinished && openNumpad(rowIndex, colIndex)}
                         disabled={gameFinished}
-                        className={`w-full h-12 rounded-xl font-display font-bold text-lg transition-all ${
-                          colIndex === winnerIndex && gameFinished
-                            ? 'bg-accent/20 text-accent border border-accent/30'
-                            : 'bg-secondary text-foreground hover:bg-secondary/80'
-                        } ${gameFinished ? 'cursor-default' : ''} ${currentCell?.col === colIndex && currentCell?.row === rowIndex ? 'ring-2 ring-primary/50' : ''}`}
+                        className={`w-full h-12 rounded-xl font-display font-bold text-lg transition-all bg-secondary text-foreground hover:bg-secondary/80 ${gameFinished ? 'cursor-default' : ''} ${currentCell?.col === colIndex && currentCell?.row === rowIndex ? 'ring-2 ring-primary/50' : ''}`}
                       >
                         {score}
                       </button>
@@ -463,10 +468,15 @@ export default function NewMatch() {
       {currentCell && (
         <Numpad
           value={numpadValue}
-          onChange={setNumpadValue}
+          onChange={handleNumpadChange}
           onEnter={handleNumpadEnter}
           onClose={() => setCurrentCell(null)}
           onMove={moveCursor}
+          onPanX={(dx) => {
+            if (scrollRef.current) {
+              scrollRef.current.scrollLeft += dx;
+            }
+          }}
           rowIndex={currentCell.row}
           colIndex={currentCell.col}
           playerName={selectedPlayers[currentCell.col]?.name}
