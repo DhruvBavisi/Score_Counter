@@ -63,6 +63,26 @@ export default function History() {
     URL.revokeObjectURL(url);
   };
 
+  const getRankings = (game: typeof games[0]) => {
+    const entries = game.players.map((name, i) => ({
+      name,
+      total: game.totals[i],
+      rank: 0,
+      index: i,
+    }));
+    entries.sort((a, b) =>
+      game.winnerRule === 'highest' ? b.total - a.total : a.total - b.total
+    );
+    let rank = 0;
+    let prev: number | null = null;
+    for (let i = 0; i < entries.length; i++) {
+      if (prev === null || entries[i].total !== prev) rank += 1;
+      entries[i].rank = rank;
+      prev = entries[i].total;
+    }
+    return entries;
+  };
+
   return (
     <div className="min-h-screen bg-background safe-top safe-bottom">
       {/* Header */}
@@ -109,8 +129,8 @@ export default function History() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Crown className="w-4 h-4 text-accent" />
-                    <span className="text-sm font-semibold text-accent">{game.players[winnerIndex]}</span>
+                    <Crown className="w-4 h-4 text-yellow-500" />
+                    <span className="text-sm font-semibold text-foreground">{game.players[winnerIndex]}</span>
                     <button
                       onClick={(e) => handleDeleteGame(e, game.id)}
                       className="p-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors ml-2"
@@ -129,29 +149,31 @@ export default function History() {
                 {/* Expanded Details */}
                 {isExpanded && (
                   <div className="px-4 pb-4 border-t border-border pt-4 animate-fade-in">
-                    {/* Players & Scores */}
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                      {game.players.map((player, i) => (
+                    {/* Final Rankings */}
+                    <div className="space-y-2 mb-4">
+                      {getRankings(game).map(({ name, total, rank, index }) => (
                         <div
-                          key={i}
-                          className={`p-3 rounded-xl flex items-center gap-3 ${
-                            i === winnerIndex
-                              ? 'bg-accent/20 border border-accent/30'
-                              : 'bg-secondary'
+                          key={index}
+                          className={`flex items-center gap-3 p-4 rounded-2xl transition-all border-2 shadow ${
+                            rank === 1
+                              ? 'bg-gradient-to-br from-yellow-200/40 via-amber-100/25 to-yellow-100/20 border-[hsl(45,100%,55%)] shadow-[0_4px_12px_-8px_hsl(45,100%,55%/0.25)]'
+                            : rank === 2
+                              ? 'bg-gradient-to-br from-zinc-200/40 via-zinc-100/25 to-white/20 border-[hsl(0,0%,70%)] shadow-[0_4px_12px_-8px_hsl(0,0%,70%/0.2)]'
+                            : rank === 3
+                              ? 'bg-gradient-to-br from-amber-200/30 via-orange-200/20 to-amber-100/15 border-[hsl(30,70%,45%)] shadow-[0_4px_12px_-8px_hsl(30,70%,45%/0.2)]'
+                            : 'bg-secondary/50 border-border'
                           }`}
                         >
-                          <PlayerAvatar name={player} size="sm" isWinner={i === winnerIndex} />
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-foreground truncate">{player}</p>
-                            <p className={`text-sm font-display font-bold ${
-                              i === winnerIndex ? 'text-accent' : 'text-muted-foreground'
-                            }`}>
-                              {game.totals[i]} pts
-                            </p>
-                          </div>
-                          {i === winnerIndex && (
-                            <Crown className="w-4 h-4 text-accent" />
-                          )}
+                          {rank === 1 ? (
+                            <Crown className="w-5 h-5 text-yellow-500 crown-bounce" />
+                          ) : null}
+                          <PlayerAvatar name={name} size="sm" isWinner={rank === 1} />
+                          <span className={`font-semibold flex-1 ${rank === 1 ? 'text-yellow-700' : rank === 2 ? 'text-white' : rank === 3 ? 'text-amber-700' : 'text-foreground'}`}>
+                            {name}
+                          </span>
+                          <span className={`font-display font-bold ${rank === 1 ? 'text-yellow-600' : rank === 2 ? 'text-white' : rank === 3 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                            {total} pts
+                          </span>
                         </div>
                       ))}
                     </div>
