@@ -77,7 +77,7 @@ export default function NewMatch() {
     if (col < numPlayers - 1) {
       setCurrentCell({ row, col: col + 1 });
       setNumpadValue(newScores[row][col + 1].toString());
-    } else if (row < numRounds - 1) {
+    } else if (row < newScores.length - 1) {
       setCurrentCell({ row: row + 1, col: 0 });
       setNumpadValue(newScores[row + 1][0].toString());
     } else {
@@ -131,24 +131,24 @@ export default function NewMatch() {
       winnerRule === 'highest' ? b.total - a.total : a.total - b.total
     );
 
-    // Assign ranks with tie handling
-    let currentRank = 1;
+    // Dense ranking: ties share rank, next distinct value increments by 1
+    let rank = 0;
+    let prevTotal: number | null = null;
     for (let i = 0; i < playersWithTotals.length; i++) {
-      if (i > 0 && playersWithTotals[i].total === playersWithTotals[i - 1].total) {
-        playersWithTotals[i].rank = playersWithTotals[i - 1].rank;
-      } else {
-        playersWithTotals[i].rank = currentRank;
+      if (prevTotal === null || playersWithTotals[i].total !== prevTotal) {
+        rank += 1;
       }
-      currentRank++;
+      playersWithTotals[i].rank = rank;
+      prevTotal = playersWithTotals[i].total;
     }
 
     return playersWithTotals;
   }, [gameFinished, scores, selectedPlayers, winnerRule]);
 
   const getRankBadge = (rank: number) => {
-    if (rank === 1) return <Crown className="w-5 h-5 text-accent crown-bounce" />;
-    if (rank === 2) return <Medal className="w-5 h-5 text-yellow-500" />;
-    if (rank === 3) return <Medal className="w-5 h-5 text-orange-400" />;
+    if (rank === 1) return <Crown className="w-5 h-5 text-yellow-500 crown-bounce" />;
+    if (rank === 2) return <Medal className="w-5 h-5 text-gray-400" />;
+    if (rank === 3) return <Medal className="w-5 h-5 text-amber-600" />;
     return <span className="w-5 h-5 flex items-center justify-center text-sm font-bold text-muted-foreground">#{rank}</span>;
   };
 
@@ -203,7 +203,7 @@ export default function NewMatch() {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setNumRounds(Math.max(1, numRounds - 1))}
-                className="w-12 h-12 rounded-xl bg-secondary text-foreground font-bold text-xl"
+                className="w-12 h-12 rounded-xl bg-primary/10 text-primary font-bold text-xl border border-primary/30 hover:bg-primary/15 transition-colors"
               >
                 -
               </button>
@@ -212,7 +212,7 @@ export default function NewMatch() {
               </div>
               <button
                 onClick={() => setNumRounds(Math.min(20, numRounds + 1))}
-                className="w-12 h-12 rounded-xl bg-secondary text-foreground font-bold text-xl"
+                className="w-12 h-12 rounded-xl bg-primary/10 text-primary font-bold text-xl border border-primary/30 hover:bg-primary/15 transition-colors"
               >
                 +
               </button>
@@ -304,7 +304,7 @@ export default function NewMatch() {
         <h1 className="font-display text-lg font-bold text-foreground">Scoreboard</h1>
       </header>
 
-      <main className="p-6 page-enter space-y-6">
+      <main className={`p-6 page-enter space-y-6 ${currentCell ? 'pb-48' : ''}`}>
         {/* Score Table */}
         <div className="overflow-x-auto -mx-6 px-6">
           <table className="w-full border-collapse min-w-max">
@@ -346,6 +346,29 @@ export default function NewMatch() {
                   ))}
                 </tr>
               ))}
+              {/* Add Round Placeholder Row */}
+              {!gameFinished && (
+                <tr className="opacity-60">
+                  <td className="p-2 text-sm text-muted-foreground">
+                    <button
+                      onClick={() => setScores(prev => [...prev, Array(selectedPlayers.length).fill(0)])}
+                      className="inline-flex items-center justify-center gap-1 px-2 py-1 rounded-md border border-border bg-secondary hover:bg-secondary/80 text-foreground"
+                    >
+                      R{scores.length + 1} +
+                    </button>
+                  </td>
+                  {selectedPlayers.map((_, i) => (
+                    <td key={`placeholder-${i}`} className="p-1">
+                      <button
+                        disabled
+                        className="w-full h-12 rounded-xl bg-secondary/60 text-muted-foreground"
+                      >
+                        -
+                      </button>
+                    </td>
+                  ))}
+                </tr>
+              )}
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-border">
@@ -353,9 +376,7 @@ export default function NewMatch() {
                 {totals.map((total, i) => (
                   <td
                     key={i}
-                    className={`p-2 text-center font-display text-xl font-bold ${
-                      i === winnerIndex && gameFinished ? 'text-accent' : 'text-foreground'
-                    }`}
+                    className={`p-2 text-center font-display text-xl font-bold ${total === Math.max(...totals) ? 'text-red-600' : 'text-foreground'}`}
                   >
                     {total}
                   </td>
@@ -373,16 +394,22 @@ export default function NewMatch() {
               {rankings.map(({ player, total, rank }) => (
                 <div
                   key={player.id}
-                  className={`flex items-center gap-3 p-4 rounded-2xl transition-all ${
-                    rank === 1 ? 'glass-card glow-winner' : 'bg-secondary/50'
+                  className={`flex items-center gap-3 p-4 rounded-2xl transition-all border-2 shadow-sm ${
+                    rank === 1
+                      ? 'bg-gradient-to-br from-yellow-200/40 via-amber-100/25 to-yellow-100/20 border-[hsl(45,100%,55%)] shadow-[0_6px_18px_-8px_hsl(45,100%,55%/0.35)]'
+                      : rank === 2
+                      ? 'bg-gradient-to-br from-zinc-200/40 via-zinc-100/25 to-white/20 border-[hsl(0,0%,70%)] shadow-[0_6px_18px_-8px_hsl(0,0%,70%/0.3)]'
+                      : rank === 3
+                      ? 'bg-gradient-to-br from-amber-200/30 via-orange-200/20 to-amber-100/15 border-[hsl(30,70%,45%)] shadow-[0_6px_18px_-8px_hsl(30,70%,45%/0.3)]'
+                      : 'bg-secondary/50 border-border'
                   }`}
                 >
                   {getRankBadge(rank)}
                   <PlayerAvatar name={player.name} size="sm" isWinner={rank === 1} />
-                  <span className={`font-semibold flex-1 ${rank === 1 ? 'text-accent' : 'text-foreground'}`}>
+                  <span className={`font-semibold flex-1 ${rank === 1 ? 'text-yellow-700' : rank === 2 ? 'text-gray-700' : rank === 3 ? 'text-amber-700' : 'text-foreground'}`}>
                     {player.name}
                   </span>
-                  <span className={`font-display font-bold ${rank === 1 ? 'text-accent' : 'text-muted-foreground'}`}>
+                  <span className={`font-display font-bold ${rank === 1 ? 'text-yellow-600' : rank === 2 ? 'text-gray-600' : rank === 3 ? 'text-amber-600' : 'text-muted-foreground'}`}>
                     {total} pts
                   </span>
                 </div>

@@ -34,7 +34,7 @@ export function PlayerAvatar({ name, size = 'md', isWinner = false }: PlayerAvat
 
   return (
     <div
-      className={`${sizeClasses[size]} rounded-full bg-gradient-to-br ${colors[colorIndex]} flex items-center justify-center font-display font-bold text-primary-foreground shadow-md ${isWinner ? 'ring-2 ring-accent ring-offset-2 ring-offset-background' : ''}`}
+      className={`${sizeClasses[size]} rounded-full bg-gradient-to-br ${colors[colorIndex]} flex items-center justify-center font-display font-bold text-primary-foreground shadow-md ${isWinner ? 'ring-2 ring-yellow-400 ring-offset-2 ring-offset-background shadow-[0_0_0_2px_hsl(45,100%,55%/0.25)_inset]' : ''}`}
     >
       {initials}
     </div>

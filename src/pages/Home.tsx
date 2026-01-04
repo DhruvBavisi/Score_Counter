@@ -48,7 +48,7 @@ export default function Home() {
             icon={Users}
             title="Players"
             description="Manage vault"
-            color="accent"
+            color="secondary"
             onClick={() => navigate('/players')}
             delay={75}
           />
@@ -64,7 +64,7 @@ export default function Home() {
             icon={Settings}
             title="Settings"
             description="Preferences"
-            color="secondary"
+            color="accent"
             onClick={() => navigate('/settings')}
             delay={225}
           />
