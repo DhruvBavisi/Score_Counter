@@ -1,0 +1,234 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Crown, ChevronDown, ChevronUp, Download, Trophy, TrendingDown, Trash2 } from 'lucide-react';
+import { useGame } from '@/contexts/GameContext';
+import { PlayerAvatar } from '@/components/PlayerAvatar';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+export default function History() {
+  const navigate = useNavigate();
+  const { games, deleteGame } = useGame();
+  const [expandedGame, setExpandedGame] = useState<string | null>(null);
+  const [gameToDelete, setGameToDelete] = useState<string | null>(null);
+
+  const handleDeleteGame = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setGameToDelete(id);
+  };
+
+  const confirmDelete = () => {
+    if (gameToDelete) {
+      deleteGame(gameToDelete);
+      toast.success('Game history deleted');
+      if (expandedGame === gameToDelete) {
+        setExpandedGame(null);
+      }
+      setGameToDelete(null);
+    }
+  };
+
+  const toggleExpand = (id: string) => {
+    setExpandedGame(expandedGame === id ? null : id);
+  };
+
+  const getWinnerIndex = (game: typeof games[0]) => {
+    if (game.winnerRule === 'highest') {
+      return game.totals.indexOf(Math.max(...game.totals));
+    }
+    return game.totals.indexOf(Math.min(...game.totals));
+  };
+
+  const exportToCSV = (game: typeof games[0]) => {
+    const headers = ['Round', ...game.players];
+    const rows = game.rounds.map((round, i) => [`R${i + 1}`, ...round]);
+    rows.push(['Total', ...game.totals]);
+
+    const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `game-${game.createdAt.toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="min-h-screen bg-background safe-top safe-bottom">
+      {/* Header */}
+      <header className="p-4 flex items-center gap-4 border-b border-border">
+        <button
+          onClick={() => navigate('/')}
+          className="p-2 rounded-xl hover:bg-secondary transition-colors"
+        >
+          <ArrowLeft className="w-6 h-6 text-foreground" />
+        </button>
+        <div className="flex-1">
+          <h1 className="font-display text-lg font-bold text-foreground">Match History</h1>
+          <p className="text-sm text-muted-foreground">{games.length} games played</p>
+        </div>
+      </header>
+
+      {/* Content */}
+      <main className="p-6 page-enter">
+        <div className="space-y-4 stagger-children">
+          {games.map((game) => {
+            const winnerIndex = getWinnerIndex(game);
+            const isExpanded = expandedGame === game.id;
+
+            return (
+              <div key={game.id} className="glass-card overflow-hidden">
+                {/* Game Header */}
+                <button
+                  onClick={() => toggleExpand(game.id)}
+                  className="w-full p-4 flex items-center gap-4"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                    {game.winnerRule === 'highest' ? (
+                      <Trophy className="w-6 h-6 text-primary" />
+                    ) : (
+                      <TrendingDown className="w-6 h-6 text-primary" />
+                    )}
+                  </div>
+                  <div className="flex-1 text-left">
+                    <h3 className="font-semibold text-foreground">
+                      {game.players.length} Players · {game.rounds.length} Rounds
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {game.createdAt.toLocaleDateString()} at {game.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Crown className="w-4 h-4 text-accent" />
+                    <span className="text-sm font-semibold text-accent">{game.players[winnerIndex]}</span>
+                    <button
+                      onClick={(e) => handleDeleteGame(e, game.id)}
+                      className="p-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors ml-2"
+                      title="Delete Game"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {isExpanded ? (
+                    <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                  )}
+                </button>
+
+                {/* Expanded Details */}
+                {isExpanded && (
+                  <div className="px-4 pb-4 border-t border-border pt-4 animate-fade-in">
+                    {/* Players & Scores */}
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      {game.players.map((player, i) => (
+                        <div
+                          key={i}
+                          className={`p-3 rounded-xl flex items-center gap-3 ${
+                            i === winnerIndex
+                              ? 'bg-accent/20 border border-accent/30'
+                              : 'bg-secondary'
+                          }`}
+                        >
+                          <PlayerAvatar name={player} size="sm" isWinner={i === winnerIndex} />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-foreground truncate">{player}</p>
+                            <p className={`text-sm font-display font-bold ${
+                              i === winnerIndex ? 'text-accent' : 'text-muted-foreground'
+                            }`}>
+                              {game.totals[i]} pts
+                            </p>
+                          </div>
+                          {i === winnerIndex && (
+                            <Crown className="w-4 h-4 text-accent" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Round Details */}
+                    <div className="overflow-x-auto mb-4">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr>
+                            <th className="p-2 text-left text-muted-foreground font-normal">Round</th>
+                            {game.players.map((player, i) => (
+                              <th key={i} className="p-2 text-center text-foreground font-medium">
+                                {player.slice(0, 3)}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {game.rounds.map((round, rowIndex) => (
+                            <tr key={rowIndex} className="border-t border-border/50">
+                              <td className="p-2 text-muted-foreground">R{rowIndex + 1}</td>
+                              {round.map((score, colIndex) => (
+                                <td key={colIndex} className="p-2 text-center text-foreground">
+                                  {score}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Export Button */}
+                    <button
+                      onClick={() => exportToCSV(game)}
+                      className="w-full py-3 rounded-xl bg-secondary text-foreground flex items-center justify-center gap-2 hover:bg-secondary/80 transition-colors"
+                    >
+                      <Download className="w-4 h-4" />
+                      Export to CSV
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {games.length === 0 && (
+            <div className="text-center py-12">
+              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-secondary flex items-center justify-center">
+                <Trophy className="w-10 h-10 text-muted-foreground" />
+              </div>
+              <h3 className="font-display font-semibold text-foreground mb-2">No Games Yet</h3>
+              <p className="text-sm text-muted-foreground">Start a new match to see history</p>
+            </div>
+          )}
+        </div>
+      </main>
+
+      <AlertDialog open={!!gameToDelete} onOpenChange={(open) => !open && setGameToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Game History?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this game record.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
