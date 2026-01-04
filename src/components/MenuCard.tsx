@@ -4,7 +4,7 @@ interface MenuCardProps {
   icon: LucideIcon;
   title: string;
   description: string;
-  color: 'primary' | 'accent' | 'success' | 'secondary';
+  color: 'primary' | 'accent' | 'success' | 'secondary' | 'dark';
   onClick: () => void;
   delay?: number;
 }
@@ -13,14 +13,16 @@ const colorClasses = {
   primary: 'from-violet-500/25 via-fuchsia-400/15 to-violet-400/10 border-violet-400/35',
   accent: 'from-amber-400/25 via-amber-300/15 to-amber-200/10 border-amber-300/40',
   success: 'from-emerald-500/25 via-teal-400/15 to-emerald-400/10 border-emerald-400/35',
-  secondary: 'from-zinc-200/50 via-zinc-100/40 to-white/30 border-zinc-300/60',
+  secondary: 'from-zinc-200/25 via-zinc-100/50 to-white/30 border-zinc-400/60',
+  dark: 'from-zinc-800/50 via-zinc-700/40 to-zinc-600/30 border-zinc-600/70',
 };
 
 const iconColorClasses = {
   primary: 'text-violet-500',
   accent: 'text-amber-500',
   success: 'text-emerald-500',
-  secondary: 'text-zinc-500',
+  secondary: 'text-gray-500',
+  dark: 'text-white',
 };
 
 export function MenuCard({

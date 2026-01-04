@@ -11,14 +11,14 @@ const sizeClasses = {
 };
 
 const colors = [
-  'from-primary to-primary/70',
-  'from-accent to-accent/70',
-  'from-success to-success/70',
-  'from-destructive to-destructive/70',
+  'from-sky-500 to-sky-400',
+  'from-emerald-500 to-emerald-400',
+  'from-amber-500 to-amber-400',
+  'from-cyan-500 to-cyan-400',
+  'from-lime-500 to-lime-400',
   'from-blue-500 to-blue-400',
-  'from-purple-500 to-purple-400',
-  'from-pink-500 to-pink-400',
   'from-orange-500 to-orange-400',
+  'from-teal-500 to-teal-400',
 ];
 
 export function PlayerAvatar({ name, size = 'md', isWinner = false }: PlayerAvatarProps) {
