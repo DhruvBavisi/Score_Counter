@@ -24,6 +24,8 @@ export default function NewMatch() {
   const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
   const [newPlayerName, setNewPlayerName] = useState('');
   const [matchName, setMatchName] = useState('');
+  const toTitleCase = (s: string) =>
+    s.replace(/\b\w+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
 
   // Scoreboard state
   const [gameStarted, setGameStarted] = useState(false);
@@ -227,7 +229,7 @@ export default function NewMatch() {
             <input
               type="text"
               value={matchName}
-              onChange={(e) => setMatchName(e.target.value)}
+              onChange={(e) => setMatchName(toTitleCase(e.target.value))}
               placeholder="Enter match name..."
               className="w-full px-4 py-3 rounded-xl bg-secondary text-foreground placeholder:text-muted-foreground border border-border focus:border-primary focus:outline-none transition-colors"
             />
@@ -368,9 +370,9 @@ export default function NewMatch() {
         <h1 className="font-display text-lg font-bold text-foreground">Scoreboard</h1>
       </header>
 
-      <main className={`p-6 page-enter space-y-6 ${currentCell ? 'pb-48' : ''}`}>
+      <main className={`p-6 page-enter space-y-6 ${currentCell ? 'pb-72' : 'pb-40'}`}>
         {/* Score Table */}
-        <div className="overflow-x-auto -mx-6 px-6" ref={scrollRef}>
+        <div className="overflow-x-auto -mx-6 px-6 pb-10 mobile-hide-scrollbar" ref={scrollRef}>
           <table className="w-full border-collapse min-w-max">
             <thead>
               <tr>
@@ -480,7 +482,8 @@ export default function NewMatch() {
           </div>
         )}
 
-        {/* Action Buttons */}
+      </main>
+      <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-background to-transparent safe-bottom">
         {!gameFinished ? (
           <button
             onClick={finishGame}
@@ -496,7 +499,7 @@ export default function NewMatch() {
             Back to Home
           </button>
         )}
-      </main>
+      </div>
 
       {/* Numpad Modal */}
       {currentCell && (

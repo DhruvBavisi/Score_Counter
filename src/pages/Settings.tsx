@@ -1,13 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trash2, AlertTriangle, Moon, Sun } from 'lucide-react';
-import { useTheme } from '@/contexts/ThemeContext';
+import { ArrowLeft, Trash2, AlertTriangle } from 'lucide-react';
 import { useGame } from '@/contexts/GameContext';
 import { toast } from 'sonner';
 
 export default function Settings() {
   const navigate = useNavigate();
-  const { theme, toggleTheme } = useTheme();
   const { clearAllData, players, games } = useGame();
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -36,38 +34,7 @@ export default function Settings() {
       {/* Content */}
       <main className="p-6 page-enter">
         <div className="space-y-6">
-          {/* Theme Toggle */}
-          <div className="glass-card p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
-                  {theme === 'dark' ? (
-                    <Moon className="w-6 h-6 text-primary" />
-                  ) : (
-                    <Sun className="w-6 h-6 text-accent" />
-                  )}
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Theme</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {theme === 'dark' ? 'Dark mode' : 'Light mode'}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={toggleTheme}
-                className={`theme-toggle ${theme === 'dark' ? 'dark' : ''}`}
-              >
-                <div className="theme-toggle-knob flex items-center justify-center">
-                  {theme === 'dark' ? (
-                    <Moon className="w-4 h-4 text-primary" />
-                  ) : (
-                    <Sun className="w-4 h-4 text-accent" />
-                  )}
-                </div>
-              </button>
-            </div>
-          </div>
+          {/* Theme removed */}
 
           {/* Data Stats */}
           <div className="glass-card p-4">

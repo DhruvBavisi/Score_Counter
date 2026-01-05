@@ -7,6 +7,18 @@
 /* Game Score Tracker Design System */
 /* Elegant Zinc & Violet Theme */
 
+@layer utilities {
+  @media (max-width: 640px) {
+    .mobile-hide-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .mobile-hide-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+  }
+}
+
 @layer base {
   :root {
     /* Elegant Zinc & Violet Theme - Light Mode Refined */
