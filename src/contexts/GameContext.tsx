@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 export interface Player {
   id: string;
   name: string;
+  group?: string;
   createdAt: Date;
 }
 
@@ -19,9 +20,9 @@ export interface Game {
 interface GameContextType {
   players: Player[];
   games: Game[];
-  addPlayer: (name: string) => boolean;
+  addPlayer: (name: string, group?: string) => boolean;
   deletePlayer: (id: string) => void;
-  updatePlayer: (id: string, name: string) => boolean;
+  updatePlayer: (id: string, name: string, group?: string) => boolean;
   addGame: (game: Omit<Game, 'id' | 'createdAt'>) => void;
   deleteGame: (id: string) => void;
   clearAllData: () => void;
@@ -66,7 +67,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
   };
 
-  const addPlayer = (name: string): boolean => {
+  const addPlayer = (name: string, group?: string): boolean => {
     const formattedName = formatName(name);
     if (!formattedName) return false;
     
@@ -78,9 +79,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const newPlayer: Player = {
       id: crypto.randomUUID(),
       name: formattedName,
+      group: group && formatName(group),
       createdAt: new Date()
     };
-    setPlayers(prev => [...prev, newPlayer]);
+    setPlayers(prev => [...prev, newPlayer].sort((a, b) => a.name.localeCompare(b.name)));
     return true;
   };
 
@@ -88,7 +90,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setPlayers(prev => prev.filter(p => p.id !== id));
   };
 
-  const updatePlayer = (id: string, name: string): boolean => {
+  const updatePlayer = (id: string, name: string, group?: string): boolean => {
     const formattedName = formatName(name);
     if (!formattedName) return false;
 
@@ -98,7 +100,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (exists) return false;
 
     setPlayers(prev =>
-      prev.map(p => (p.id === id ? { ...p, name: formattedName } : p))
+      prev
+        .map(p => (p.id === id ? { ...p, name: formattedName, group: group && formatName(group) } : p))
+        .sort((a, b) => a.name.localeCompare(b.name))
     );
     return true;
   };

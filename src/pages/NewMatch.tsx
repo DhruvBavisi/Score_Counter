@@ -1,11 +1,12 @@
 import { useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Trophy, TrendingDown, Check, Plus, Crown, Medal, Play } from 'lucide-react';
+import { ArrowLeft, Trophy, TrendingDown, Check, Plus, Crown, Medal, Play, ChevronDown } from 'lucide-react';
 import { useGame, Player } from '@/contexts/GameContext';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { Numpad } from '@/components/Numpad';
 import { Confetti } from '@/components/Confetti';
 import { toast } from 'sonner';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 
 interface RankingPlayer {
   player: Player;
@@ -33,6 +34,7 @@ export default function NewMatch() {
   const [currentCell, setCurrentCell] = useState<{ row: number; col: number } | null>(null);
   const [numpadValue, setNumpadValue] = useState('');
   const [gameFinished, setGameFinished] = useState(false);
+  const [inactivePlayers, setInactivePlayers] = useState<string[]>([]);
 
   const togglePlayer = (player: Player) => {
     if (selectedPlayers.find(p => p.id === player.id)) {
@@ -61,6 +63,8 @@ export default function NewMatch() {
   };
 
   const openNumpad = (row: number, col: number) => {
+    const playerId = selectedPlayers[col]?.id;
+    if (playerId && inactivePlayers.includes(playerId)) return;
     setCurrentCell({ row, col });
     setNumpadValue(scores[row][col].toString());
     scrollActiveCellIntoView(row, col);
@@ -88,6 +92,12 @@ export default function NewMatch() {
     } else if (cellRect.left < containerRect.left + padding) {
       container.scrollLeft -= (containerRect.left + padding) - cellRect.left;
     }
+    const panel = document.getElementById('numpad-panel') as HTMLDivElement | null;
+    const panelHeight = panel?.offsetHeight || 300;
+    const bottomThreshold = window.innerHeight - panelHeight - 24;
+    if (cellRect.bottom > bottomThreshold) {
+      window.scrollBy({ top: cellRect.bottom - bottomThreshold, behavior: 'smooth' });
+    }
   };
 
   const moveCursor = (dir: 'up' | 'down' | 'left' | 'right') => {
@@ -101,14 +111,22 @@ export default function NewMatch() {
     } else if (dir === 'down' && row < maxRow) {
       setCurrentCell({ row: row + 1, col });
       setNumpadValue(scores[row + 1][col].toString());
-    } else if (dir === 'left' && col > 0) {
-      setCurrentCell({ row, col: col - 1 });
-      setNumpadValue(scores[row][col - 1].toString());
-      scrollActiveCellIntoView(row, col - 1);
-    } else if (dir === 'right' && col < maxCol) {
-      setCurrentCell({ row, col: col + 1 });
-      setNumpadValue(scores[row][col + 1].toString());
-      scrollActiveCellIntoView(row, col + 1);
+    } else if (dir === 'left') {
+      let next = col - 1;
+      while (next >= 0 && inactivePlayers.includes(selectedPlayers[next].id)) next--;
+      if (next >= 0) {
+        setCurrentCell({ row, col: next });
+        setNumpadValue(scores[row][next].toString());
+        scrollActiveCellIntoView(row, next);
+      }
+    } else if (dir === 'right') {
+      let next = col + 1;
+      while (next <= maxCol && inactivePlayers.includes(selectedPlayers[next].id)) next++;
+      if (next <= maxCol) {
+        setCurrentCell({ row, col: next });
+        setNumpadValue(scores[row][next].toString());
+        scrollActiveCellIntoView(row, next);
+      }
     }
   };
 
@@ -223,6 +241,38 @@ export default function NewMatch() {
         </header>
 
         <main className="p-6 pb-32 page-enter space-y-8">
+          {/* Predefined Games */}
+          <section>
+            <h2 className="text-sm font-semibold text-muted-foreground mb-3">Games</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => {
+                  setWinnerRule('lowest');
+                  setMatchName('Badam Satti');
+                  toast.success('Badam Satti selected (lowest wins)');
+                }}
+                className="p-4 rounded-2xl border-2 transition-all border-primary/40 bg-primary/10 hover:bg-primary/15"
+              >
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-foreground">Badam Satti</p>
+                  <p className="text-xs text-muted-foreground mt-1">Lowest score wins</p>
+                </div>
+              </button>
+              <button
+                onClick={() => {
+                  setWinnerRule('highest');
+                  setMatchName('Kachu Phool');
+                  toast.success('Kachu Phool selected (highest wins)');
+                }}
+                className="p-4 rounded-2xl border-2 transition-all border-primary/40 bg-primary/10 hover:bg-primary/15"
+              >
+                <div className="text-left">
+                  <p className="text-sm font-semibold text-foreground">Kachu Phool</p>
+                  <p className="text-xs text-muted-foreground mt-1">Highest score wins</p>
+                </div>
+              </button>
+            </div>
+          </section>
           {/* Match Name */}
           <section>
             <h2 className="text-sm font-semibold text-muted-foreground mb-3">Match Name</h2>
@@ -310,32 +360,11 @@ export default function NewMatch() {
             </div>
 
             {/* Player List */}
-            <div className="space-y-2 max-h-[300px] overflow-y-auto">
-              {allPlayers.map((player) => {
-                const isSelected = selectedPlayers.find(p => p.id === player.id);
-                return (
-                  <button
-                    key={player.id}
-                    onClick={() => togglePlayer(player)}
-                    className={`w-full p-3 rounded-xl border-2 transition-all flex items-center gap-3 ${
-                      isSelected
-                        ? 'border-primary bg-primary/10'
-                        : 'border-border hover:border-primary/50'
-                    }`}
-                  >
-                    <PlayerAvatar name={player.name} size="sm" />
-                    <span className="font-medium text-foreground">{player.name}</span>
-                    {isSelected && <Check className="w-5 h-5 text-primary ml-auto" />}
-                  </button>
-                );
-              })}
-
-              {allPlayers.length === 0 && (
-                <p className="text-center text-muted-foreground py-6">
-                  No players yet. Add some above!
-                </p>
-              )}
-            </div>
+            <PlayerList
+              players={allPlayers}
+              selectedPlayers={selectedPlayers}
+              onToggle={togglePlayer}
+            />
           </section>
         </main>
 
@@ -356,7 +385,7 @@ export default function NewMatch() {
 
   // Scoreboard View
   return (
-    <div className="min-h-screen bg-background safe-top safe-bottom">
+    <div className="min-h-screen bg-background safe-top safe-bottom flex flex-col">
       {gameFinished && <Confetti />}
 
       {/* Header */}
@@ -370,37 +399,43 @@ export default function NewMatch() {
         <h1 className="font-display text-lg font-bold text-foreground">Scoreboard</h1>
       </header>
 
-      <main className={`p-6 page-enter space-y-6 ${currentCell ? 'pb-72' : 'pb-40'}`}>
+      <main className={`flex-1 p-6 page-enter space-y-6 ${currentCell ? 'pb-56' : 'pb-36'}`}>
         {/* Score Table */}
-        <div className="overflow-x-auto -mx-6 px-6 pb-10 mobile-hide-scrollbar" ref={scrollRef}>
-          <table className="w-full border-collapse min-w-max">
-            <thead>
+        <div className="overflow-auto -mx-6 px-0 pb-0 mobile-hide-scrollbar relative max-h-[70vh] bg-background" ref={scrollRef}>
+          <table className="w-full border-separate min-w-max no-border-spacing">
+            <thead className="sticky top-0 z-50 bg-background shadow-none">
               <tr>
-                <th className="p-2 text-left text-xs text-muted-foreground font-normal">Round</th>
+                <th className="p-2 text-center text-xs text-muted-foreground font-normal sticky left-0 top-0 z-50 bg-background border-b border-border border-r">Round</th>
                 {selectedPlayers.map((player, i) => (
                   <th
                     key={player.id}
-                    className={`p-2 text-center min-w-[80px] ${currentCell?.col === i ? 'text-primary' : 'text-foreground'}`}
+                    className={`p-2 text-center min-w-[80px] sticky top-0 z-50 bg-background border-b border-border ${currentCell?.col === i ? 'text-primary' : 'text-foreground'}`}
                   >
                     <div className="flex flex-col items-center gap-1">
                       {i === winnerIndex && gameFinished && <Crown className="w-4 h-4 crown-bounce text-yellow-500" />}
                       <PlayerAvatar name={player.name} size="sm" isWinner={i === winnerIndex && gameFinished} />
                       <span className="text-xs font-medium truncate max-w-[70px]">{player.name}</span>
+                      <button
+                        onClick={() => setInactivePlayers((prev) => prev.includes(player.id) ? prev.filter(id => id !== player.id) : [...prev, player.id])}
+                        className={`mt-1 px-2 py-0.5 rounded-md text-xs border ${inactivePlayers.includes(player.id) ? 'bg-destructive/20 text-destructive border-destructive/40' : 'bg-secondary text-foreground border-border'}`}
+                      >
+                        {inactivePlayers.includes(player.id) ? 'Resume' : 'Stop'}
+                      </button>
                     </div>
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody>
-              {scores.map((round, rowIndex) => (
-                <tr key={rowIndex} className={`${currentCell?.row === rowIndex ? 'bg-primary/5' : ''}`}>
-                  <td className="p-2 text-sm text-muted-foreground">R{rowIndex + 1}</td>
-                  {round.map((score, colIndex) => (
-                    <td key={colIndex} className="p-1">
-                      <button
-                        onClick={() => !gameFinished && openNumpad(rowIndex, colIndex)}
-                        disabled={gameFinished}
-                        className={`w-full h-12 rounded-xl font-display font-bold text-lg transition-all bg-secondary text-foreground hover:bg-secondary/80 ${gameFinished ? 'cursor-default' : ''} ${currentCell?.col === colIndex && currentCell?.row === rowIndex ? 'ring-2 ring-primary/50' : ''}`}
+              <tbody>
+                {scores.map((round, rowIndex) => (
+                  <tr key={rowIndex} className={`${currentCell?.row === rowIndex ? 'bg-primary/5' : ''}`}>
+                    <td className="p-2 text-sm text-muted-foreground text-center sticky left-0 z-40 bg-background border-r border-border">R{rowIndex + 1}</td>
+                    {round.map((score, colIndex) => (
+                      <td key={colIndex} className="p-1">
+                        <button
+                          onClick={() => !gameFinished && openNumpad(rowIndex, colIndex)}
+                          disabled={gameFinished || inactivePlayers.includes(selectedPlayers[colIndex].id)}
+                        className={`w-full h-12 rounded-xl font-display font-bold text-lg transition-all bg-secondary text-foreground hover:bg-secondary/80 ${gameFinished || inactivePlayers.includes(selectedPlayers[colIndex].id) ? 'cursor-default opacity-50' : ''} ${currentCell?.col === colIndex && currentCell?.row === rowIndex ? 'ring-2 ring-primary/50' : ''}`}
                         data-row={rowIndex}
                         data-col={colIndex}
                       >
@@ -409,16 +444,16 @@ export default function NewMatch() {
                     </td>
                   ))}
                 </tr>
-              ))}
-              {/* Add Round Placeholder Row */}
-              {!gameFinished && (
-                <tr className="opacity-60">
-                  <td className="p-2 text-sm text-muted-foreground">
-                    <button
-                      onClick={() => setScores(prev => [...prev, Array(selectedPlayers.length).fill(0)])}
-                      className="inline-flex items-center justify-center gap-1 px-2 py-1 rounded-md border border-border bg-secondary hover:bg-secondary/80 text-foreground"
-                    >
-                      R{scores.length + 1} +
+                ))}
+                {/* Add Round Placeholder Row */}
+                {!gameFinished && (
+                  <tr className="opacity-60">
+                    <td className="p-2 text-sm text-muted-foreground text-center sticky left-0 z-40 bg-background border-r border-border">
+                      <button
+                        onClick={() => setScores(prev => [...prev, Array(selectedPlayers.length).fill(0)])}
+                        className="inline-flex items-center justify-center gap-1 px-2 py-1 rounded-md border border-border bg-secondary hover:bg-secondary/80 text-foreground"
+                      >
+                        R{scores.length + 1} +
                     </button>
                   </td>
                   {selectedPlayers.map((_, i) => (
@@ -433,15 +468,15 @@ export default function NewMatch() {
                   ))}
                 </tr>
               )}
-            </tbody>
-            <tfoot>
-              <tr className="border-t-2 border-border">
-                <td className="p-2 text-sm font-bold text-foreground">Total</td>
-                {totals.map((total, i) => (
-                  <td
-                    key={i}
-                    className={`p-2 text-center font-display text-xl font-bold ${total === extremeTotal ? 'text-red-600' : 'text-foreground'}`}
-                  >
+              </tbody>
+              <tfoot className="sticky bottom-0 z-50 bg-background shadow-none">
+                <tr className="border-t-2 border-border">
+                  <td className="p-2 text-sm font-bold text-foreground text-center sticky left-0 z-40 bg-background border-r border-border">Total</td>
+                  {totals.map((total, i) => (
+                    <td
+                      key={i}
+                      className={`p-2 text-center font-display text-xl font-bold ${total === extremeTotal ? 'text-red-600' : 'text-foreground'}`}
+                    >
                     {total}
                   </td>
                 ))}
@@ -483,7 +518,8 @@ export default function NewMatch() {
         )}
 
       </main>
-      <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-background to-transparent safe-bottom">
+
+      <div className="p-6 bg-gradient-to-t from-background to-transparent safe-bottom">
         {!gameFinished ? (
           <button
             onClick={finishGame}
@@ -518,6 +554,78 @@ export default function NewMatch() {
           colIndex={currentCell.col}
           playerName={selectedPlayers[currentCell.col]?.name}
         />
+      )}
+    </div>
+  );
+}
+
+function PlayerList({
+  players,
+  selectedPlayers,
+  onToggle,
+}: {
+  players: Player[];
+  selectedPlayers: Player[];
+  onToggle: (player: Player) => void;
+}) {
+  const sortedPlayers = useMemo(() => [...players].sort((a, b) => a.name.localeCompare(b.name)), [players]);
+  const groups = useMemo(() => {
+    const map = new Map<string, Player[]>();
+    for (const p of sortedPlayers) {
+      const key = p.group?.trim() || 'Ungrouped';
+      const arr = map.get(key) || [];
+      arr.push(p);
+      map.set(key, arr);
+    }
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [sortedPlayers]);
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+
+  return (
+    <div className="space-y-4 max-h-[300px] overflow-y-auto">
+      {groups.map(([groupName, groupPlayers]) => (
+        <Collapsible
+          key={groupName}
+          open={!!open[groupName]}
+          onOpenChange={(v) => setOpen((prev) => ({ ...prev, [groupName]: v }))}
+        >
+          <CollapsibleTrigger asChild>
+            <button className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-secondary text-foreground hover:bg-secondary/80">
+              <span className="text-sm font-semibold">{groupName}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">{groupPlayers.length}</span>
+                <ChevronDown className={`w-4 h-4 text-muted-foreground ${open[groupName] ? 'rotate-180 transition-transform' : 'transition-transform'}`} />
+              </div>
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-2 pt-2">
+            {groupPlayers.map((player) => {
+              const isSelected = selectedPlayers.some((p) => p.id === player.id);
+              const orderIndex = selectedPlayers.findIndex((p) => p.id === player.id);
+              return (
+                <button
+                  key={player.id}
+                  onClick={() => onToggle(player)}
+                  className={`w-full p-3 rounded-xl border-2 transition-all flex items-center gap-3 ${
+                    isSelected ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <PlayerAvatar name={player.name} size="sm" />
+                  <span className="font-medium text-foreground">{player.name}</span>
+                  {isSelected && (
+                    <span className="ml-auto px-2 py-1 rounded-md bg-primary/15 text-primary font-bold text-sm">
+                      {orderIndex + 1}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </CollapsibleContent>
+        </Collapsible>
+      ))}
+
+      {players.length === 0 && (
+        <p className="text-center text-muted-foreground py-6">No players yet. Add some above!</p>
       )}
     </div>
   );

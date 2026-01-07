@@ -401,6 +401,10 @@
     background-clip: text;
   }
 
+  .no-border-spacing {
+    border-spacing: 0;
+  }
+
   .bg-gradient-primary {
     background: var(--gradient-primary);
   }
