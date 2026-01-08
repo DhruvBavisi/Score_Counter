@@ -6,7 +6,6 @@ import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { Numpad } from '@/components/Numpad';
 import { Confetti } from '@/components/Confetti';
 import { toast } from 'sonner';
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 
@@ -21,7 +20,7 @@ export default function NewMatch() {
   const { players: allPlayers, addPlayer, addGame } = useGame();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const lastRowRef = useRef<HTMLTableRowElement | null>(null);
-  const longPressTimerRef = useRef<number | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 
   // Setup state
@@ -475,15 +474,19 @@ export default function NewMatch() {
                     key={player.id}
                     className={`p-2 text-center min-w-[80px] sticky top-0 z-50 bg-background border-b border-border ${currentCell?.col === i ? 'text-primary' : 'text-foreground'}`}
                   >
-                    <div className="flex flex-col items-center gap-1">
+                    <div className="flex flex-col items-center gap-1 no-select">  
                       {i === winnerIndex && gameFinished && <Crown className="w-4 h-4 crown-bounce text-yellow-500" />}
                       <PlayerAvatar
+                        className="no-select"
                         name={player.name}
                         size="sm"
                         isWinner={i === winnerIndex && gameFinished}
                         onMouseDown={() => {
-                          if (longPressTimerRef.current) window.clearTimeout(longPressTimerRef.current);
-                          longPressTimerRef.current = window.setTimeout(() => toggleInactive(player.id), 350);
+                            if (longPressTimerRef.current) {
+                              window.clearTimeout(longPressTimerRef.current);
+                              longPressTimerRef.current = null;
+                            }
+                          // longPressTimerRef.current = window.setTimeout(() => toggleInactive(player.id), 350);
                         }}
                         onMouseUp={() => {
                           if (longPressTimerRef.current) {
@@ -499,7 +502,7 @@ export default function NewMatch() {
                         }}
                         onTouchStart={() => {
                           if (longPressTimerRef.current) window.clearTimeout(longPressTimerRef.current);
-                          longPressTimerRef.current = window.setTimeout(() => toggleInactive(player.id), 350);
+                          // longPressTimerRef.current = window.setTimeout(() => toggleInactive(player.id), 350);
                         }}
                         onTouchEnd={() => {
                           if (longPressTimerRef.current) {
@@ -514,7 +517,7 @@ export default function NewMatch() {
                             className="text-xs font-medium truncate max-w-[70px]"
                             onMouseDown={() => {
                               if (longPressTimerRef.current) window.clearTimeout(longPressTimerRef.current);
-                              longPressTimerRef.current = window.setTimeout(() => toggleInactive(player.id), 350);
+                              // longPressTimerRef.current = window.setTimeout(() => toggleInactive(player.id), 350);
                             }}
                             onMouseUp={() => {
                               if (longPressTimerRef.current) {
@@ -528,16 +531,7 @@ export default function NewMatch() {
                                 longPressTimerRef.current = null;
                               }
                             }}
-                            onTouchStart={() => {
-                              if (longPressTimerRef.current) window.clearTimeout(longPressTimerRef.current);
-                              longPressTimerRef.current = window.setTimeout(() => toggleInactive(player.id), 350);
-                            }}
-                            onTouchEnd={() => {
-                              if (longPressTimerRef.current) {
-                                window.clearTimeout(longPressTimerRef.current);
-                                longPressTimerRef.current = null;
-                              }
-                            }}
+                            
                             onContextMenu={(e) => {
                               e.preventDefault();
                               setMenuTarget(player.id);

@@ -4,6 +4,16 @@
 @tailwind components;
 @tailwind utilities;
 
+.no-select {
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+
 /* Game Score Tracker Design System */
 /* Elegant Zinc & Violet Theme */
 
