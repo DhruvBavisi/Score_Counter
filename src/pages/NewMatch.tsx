@@ -998,14 +998,14 @@ export default function NewMatch() {
 
               <DropdownMenuItem
                 onClick={() => setShowExitDialog(true)}
-                className="flex items-center gap-3 p-3 rounded-xl cursor-pointer font-semibold text-destructive hover:bg-destructive/10 focus:bg-destructive/10 transition-colors mt-1"
+                className="flex items-center gap-3 p-3 rounded-xl cursor-pointer font-bold text-red-500 hover:bg-red-500/10 focus:bg-red-500/10 transition-colors mt-1"
               >
-                <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-destructive/15 text-destructive">
+                <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-red-500/15 text-red-500">
                   <LogOut className="w-5 h-5" />
                 </div>
                 <div className="flex flex-col">
-                  <span>Exit Game</span>
-                  <span className="text-[10px] text-destructive/70 font-normal">Discard game and go back</span>
+                  <span className="text-red-600">Exit Game</span>
+                  <span className="text-[10px] text-red-500/70 font-normal">Discard game and go back</span>
                 </div>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -1047,11 +1047,11 @@ export default function NewMatch() {
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
         <AlertDialogContent className="rounded-3xl max-w-[90vw] sm:max-w-lg border-2 border-border/50 shadow-2xl animate-in fade-in zoom-in duration-300">
           <AlertDialogHeader className="space-y-4">
-            <div className="mx-auto w-16 h-16 rounded-full bg-destructive/15 flex items-center justify-center text-destructive mb-2">
+            <div className="mx-auto w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center text-red-500 mb-2">
               <LogOut className="w-8 h-8" />
             </div>
-            <AlertDialogTitle className="text-2xl font-display font-bold text-center">Exit Game?</AlertDialogTitle>
-            <AlertDialogDescription className="text-center text-base">
+            <AlertDialogTitle className="text-2xl font-display font-bold text-center text-red-600">Exit Game?</AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-base text-red-500/80">
               Your current game progress will be lost. Are you sure you want to go back to the home screen?
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -1061,7 +1061,7 @@ export default function NewMatch() {
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => navigate('/')}
-              className="flex-1 h-12 rounded-2xl bg-destructive hover:bg-destructive/90 text-white font-bold border-none shadow-lg shadow-destructive/20"
+              className="flex-1 h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold border-none shadow-lg shadow-red-500/20"
             >
               Exit
             </AlertDialogAction>
