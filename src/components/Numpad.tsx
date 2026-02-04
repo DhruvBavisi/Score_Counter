@@ -12,12 +12,9 @@ interface NumpadProps {
   colIndex?: number;
   playerName?: string;
   onPanX?: (dx: number) => void;
-  keyboardType?: 'custom' | 'system';
 }
 
-export function Numpad({ value, onChange, onEnter, onClose, onMove, rowIndex, colIndex, playerName, onPanX, keyboardType = 'custom' }: NumpadProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
+export function Numpad({ value, onChange, onEnter, onClose, onMove, rowIndex, colIndex, playerName, onPanX }: NumpadProps) {
   const handleButton = (btn: string) => {
     if (btn === 'C') {
       onChange('');
@@ -50,14 +47,6 @@ export function Numpad({ value, onChange, onEnter, onClose, onMove, rowIndex, co
       newValue = (current + points).toString();
     }
     onChange(newValue);
-    
-    // Refocus input in system mode to keep keyboard open
-    if (keyboardType === 'system') {
-      // Small timeout to ensure state update doesn't interfere with focus
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 0);
-    }
   };
 
   const buttons = [
@@ -76,47 +65,40 @@ export function Numpad({ value, onChange, onEnter, onClose, onMove, rowIndex, co
   let startY: number | null = null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-transparent animate-fade-in"
-      onClick={onClose}
-      onWheel={(e) => {
-        onPanX?.(e.deltaX);
-        if (Math.abs(e.deltaY) > 8) {
-          if (e.deltaY > 0) onMove?.('down');
-          else onMove?.('up');
-        }
-      }}
-      onTouchStart={(e) => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; }}
-      onTouchMove={(e) => {
-        if (startX !== null) {
-          const currentX = e.touches[0].clientX;
-          const dx = startX - currentX;
-          onPanX?.(dx);
-          startX = currentX;
-        }
-        if (startY !== null) {
-          const currentY = e.touches[0].clientY;
-          const dy = startY - currentY;
-          if (Math.abs(dy) > 12) {
-            if (dy > 0) onMove?.('up');
-            else onMove?.('down');
-            startY = currentY;
-          }
-        }
-      }}
-    >
+    <div className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none flex justify-center">
       <div 
         id="numpad-panel" 
-        className={`w-full max-w-sm sm:max-w-md md:max-w-lg p-4 sm:p-5 animate-slide-up transition-all ${
-          keyboardType === 'custom' 
-            ? 'bg-card border border-border shadow-md rounded-t-3xl sm:pb-10' 
-            : 'bg-transparent pb-0'
-        }`} 
+        className="w-full max-w-sm sm:max-w-md md:max-w-lg p-4 sm:p-5 animate-slide-up transition-all bg-card border border-border shadow-md rounded-t-3xl sm:pb-10 pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
+        onWheel={(e) => {
+          onPanX?.(e.deltaX);
+          if (Math.abs(e.deltaY) > 8) {
+            if (e.deltaY > 0) onMove?.('down');
+            else onMove?.('up');
+          }
+        }}
+        onTouchStart={(e) => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; }}
+        onTouchMove={(e) => {
+          if (startX !== null) {
+            const currentX = e.touches[0].clientX;
+            const dx = startX - currentX;
+            onPanX?.(dx);
+            startX = currentX;
+          }
+          if (startY !== null) {
+            const currentY = e.touches[0].clientY;
+            const dy = startY - currentY;
+            if (Math.abs(dy) > 12) {
+              if (dy > 0) onMove?.('up');
+              else onMove?.('down');
+              startY = currentY;
+            }
+          }
+        }}
       >
         
         {/* Quick Points */}
-        <div className={`space-y-2 ${keyboardType === 'system' ? 'bg-card/90 backdrop-blur-sm p-3 rounded-2xl border border-border/50 shadow-lg mb-2' : 'mb-4'}`}>
+        <div className="space-y-2 mb-4">
           {quickPoints.map((row, i) => (
             <div key={i} className="grid grid-cols-3 gap-2 sm:gap-3">
               {row.map((points) => (
@@ -137,56 +119,34 @@ export function Numpad({ value, onChange, onEnter, onClose, onMove, rowIndex, co
           ))}
         </div>
 
-        {keyboardType === 'custom' ? (
-          <>
-            {/* Numpad Grid */}
-            <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4">
-              {buttons.flat().map((btn) => (
-                <button
-                  key={btn}
-                  onClick={() => handleButton(btn)}
-                  className="numpad-btn h-12 sm:h-14 md:h-16 text-lg sm:text-xl font-semibold"
-                >
-                  {btn}
-                </button>
-              ))}
-            </div>
+        {/* Numpad Grid */}
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4">
+          {buttons.flat().map((btn) => (
+            <button
+              key={btn}
+              onClick={() => handleButton(btn)}
+              className="numpad-btn h-12 sm:h-14 md:h-16 text-lg sm:text-xl font-semibold"
+            >
+              {btn}
+            </button>
+          ))}
+        </div>
 
-            {/* Bottom Row */}
-            <div className="grid grid-cols-2 gap-2 sm:gap-3">
-              <button
-                onClick={() => handleButton('C')}
-                className="numpad-btn h-12 sm:h-14 md:h-16 bg-destructive/15 text-destructive hover:bg-destructive/25"
-              >
-                Clear
-              </button>
-              <button
-                onClick={() => handleButton('Enter')}
-                className="numpad-btn h-12 sm:h-14 md:h-16 bg-gradient-primary text-primary-foreground font-bold"
-              >
-                Enter
-              </button>
-            </div>
-          </>
-        ) : (
-          /* System Keyboard Mode - Hidden Input */
-          <div className="h-0 overflow-hidden opacity-0">
-            <input
-              ref={inputRef}
-              type="tel"
-              pattern="[0-9]*"
-              inputMode="numeric"
-              value={value}
-              onChange={(e) => onChange(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') onEnter();
-              }}
-              autoFocus
-              className="absolute bottom-0 left-0 w-1 h-1 opacity-0"
-              placeholder="0"
-            />
-          </div>
-        )}
+        {/* Bottom Row */}
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+          <button
+            onClick={() => handleButton('C')}
+            className="numpad-btn h-12 sm:h-14 md:h-16 bg-destructive/15 text-destructive hover:bg-destructive/25"
+          >
+            Clear
+          </button>
+          <button
+            onClick={() => handleButton('Enter')}
+            className="numpad-btn h-12 sm:h-14 md:h-16 bg-gradient-primary text-primary-foreground font-bold"
+          >
+            Enter
+          </button>
+        </div>
       </div>
     </div>
   );

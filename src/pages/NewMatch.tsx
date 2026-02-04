@@ -41,50 +41,96 @@ export default function NewMatch() {
       }
       return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
     }, [sortedPlayers]);
+    
     const [openGroup, setOpenGroup] = useState<{ name: string; players: Player[] } | null>(null);
     const [tempSelected, setTempSelected] = useState<string[]>([]);
-    const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+    
+    // Drag and Drop State
+    const [draggingState, setDraggingState] = useState<{
+      id: string;
+      startIndex: number;
+      startY: number;
+      currentY: number;
+      itemHeight: number;
+    } | null>(null);
 
-    const handleDragStart = (e: React.DragEvent, index: number) => {
+    const handlePointerDown = (e: React.PointerEvent, id: string, index: number) => {
       // Only allow drag if the handle was the target
-      const target = e.target as HTMLElement;
-      // We'll rely on the fact that we only put draggable on the container, 
-      // but we need to check if the user grabbed the handle.
-      // Actually, a better way is to set draggable={true} ONLY on the handle?
-      // No, HTML5 DnD requires the dragged element to be the container usually for the ghost image to be correct.
-      // But we can check e.target or a parent of e.target has a specific class.
-      // However, if we put draggable on the container, dragging anywhere on it works by default.
-      // We can preventDefault in onDragStart if the target isn't the handle.
-      
-      // Let's check if the click target was the handle
-      // Note: e.target might be the SVG path inside the handle.
-      // We'll use a data attribute or class on the handle.
       const handle = (e.target as HTMLElement).closest('.drag-handle');
-      if (!handle) {
-        e.preventDefault();
-        return;
+      if (!handle) return;
+      
+      e.preventDefault();
+      const el = e.currentTarget as HTMLElement;
+      el.setPointerCapture(e.pointerId);
+      
+      const rect = el.getBoundingClientRect();
+      // Assuming gap is 8px (space-y-2)
+      setDraggingState({
+        id,
+        startIndex: index,
+        startY: e.clientY,
+        currentY: e.clientY,
+        itemHeight: rect.height + 8
+      });
+    };
+
+    const handlePointerMove = (e: React.PointerEvent) => {
+      if (!draggingState) return;
+      e.preventDefault();
+      setDraggingState(prev => prev ? ({ ...prev, currentY: e.clientY }) : null);
+    };
+
+    const handlePointerUp = (e: React.PointerEvent) => {
+      if (!draggingState) return;
+      e.preventDefault();
+      
+      const diff = draggingState.currentY - draggingState.startY;
+      const slots = Math.round(diff / draggingState.itemHeight);
+      const newIndex = Math.max(0, Math.min(tempSelected.length - 1, draggingState.startIndex + slots));
+      
+      if (newIndex !== draggingState.startIndex) {
+        const newTemp = [...tempSelected];
+        const [removed] = newTemp.splice(draggingState.startIndex, 1);
+        newTemp.splice(newIndex, 0, removed);
+        setTempSelected(newTemp);
+      }
+      
+      setDraggingState(null);
+    };
+
+    // Calculate visual offset for an item
+    const getItemStyle = (index: number, id: string) => {
+      if (!draggingState) return {};
+
+      // The dragged item follows the cursor
+      if (draggingState.id === id) {
+        return {
+          transform: `translateY(${draggingState.currentY - draggingState.startY}px)`,
+          zIndex: 50,
+          opacity: 0.7,
+          cursor: 'grabbing',
+          transition: 'none' // Real-time
+        };
       }
 
-      setDraggedIndex(index);
-      e.dataTransfer.effectAllowed = 'move';
-      // Set invisible drag image or custom one if needed, but default is usually fine
-    };
+      // Other items shift to make space
+      const diff = draggingState.currentY - draggingState.startY;
+      const slots = Math.round(diff / draggingState.itemHeight);
+      const targetIndex = Math.max(0, Math.min(tempSelected.length - 1, draggingState.startIndex + slots));
 
-    const handleDragOver = (e: React.DragEvent, index: number) => {
-      e.preventDefault();
-      if (draggedIndex === null || draggedIndex === index) return;
+      let translateY = 0;
       
-      const newTemp = [...tempSelected];
-      const draggedItem = newTemp[draggedIndex];
-      newTemp.splice(draggedIndex, 1);
-      newTemp.splice(index, 0, draggedItem);
-      
-      setTempSelected(newTemp);
-      setDraggedIndex(index);
-    };
+      // If item is between start and target, shift it
+      if (index > draggingState.startIndex && index <= targetIndex) {
+        translateY = -draggingState.itemHeight; // Shift up
+      } else if (index < draggingState.startIndex && index >= targetIndex) {
+        translateY = draggingState.itemHeight; // Shift down
+      }
 
-    const handleDragEnd = () => {
-      setDraggedIndex(null);
+      return {
+        transform: `translateY(${translateY}px)`,
+        transition: 'transform 200ms ease-out'
+      };
     };
 
     return (
@@ -137,7 +183,7 @@ export default function NewMatch() {
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                   {/* Selected Players (Draggable) */}
                   {tempSelected.length > 0 && (
-                    <div className="space-y-2">
+                    <div className="space-y-2 relative">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">Selected ({tempSelected.length})</p>
                       {tempSelected.map((id, index) => {
                         const player = openGroup.players.find(p => p.id === id);
@@ -145,15 +191,12 @@ export default function NewMatch() {
                         return (
                           <div
                             key={player.id}
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, index)}
-                            onDragOver={(e) => handleDragOver(e, index)}
-                            onDragEnd={handleDragEnd}
-                            onClick={() => {
-                              // Deselect on click (whole card)
-                              setTempSelected(prev => prev.filter(pid => pid !== id));
-                            }}
-                            className={`w-full p-3 rounded-xl border-2 transition-all duration-300 ease-in-out flex items-center gap-3 border-primary bg-primary/10 ${draggedIndex === index ? 'opacity-50' : ''}`}
+                            onPointerDown={(e) => handlePointerDown(e, id, index)}
+                            onPointerMove={handlePointerMove}
+                            onPointerUp={handlePointerUp}
+                            onPointerCancel={handlePointerUp}
+                            style={getItemStyle(index, id)}
+                            className={`w-full p-3 rounded-xl border-2 flex items-center gap-3 border-primary bg-primary/10 select-none touch-none`}
                           >
                             <PlayerAvatar name={player.name} size="sm" />
                             <span className="font-medium text-foreground flex-1 text-left select-none">{player.name}</span>
@@ -162,8 +205,7 @@ export default function NewMatch() {
                                 {index + 1}
                               </span>
                               <div 
-                                className="drag-handle cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-primary p-3 -mr-2 touch-none"
-                                onClick={(e) => e.stopPropagation()} // Prevent deselect when clicking handle
+                                className="drag-handle cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-primary p-3 -mr-2"
                               >
                                 {/* Thinner equals/hamburger symbol */}
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -233,7 +275,6 @@ export default function NewMatch() {
   // Setup state
   const [winnerRule, setWinnerRule] = useState<'highest' | 'lowest'>('highest');
   const [numRounds, setNumRounds] = useState(5);
-  const [keyboardType, setKeyboardType] = useState<'custom' | 'system'>('custom');
   const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [savedScores, setSavedScores] = useState<number[][]>([]);
@@ -269,6 +310,31 @@ export default function NewMatch() {
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [scores.length]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (!currentCell) return;
+      const target = e.target as HTMLElement;
+      // Check if click is inside numpad
+      if (target.closest('#numpad-panel')) return;
+      
+      // Check if click is on a cell button (or its children)
+      // We check for the data-row attribute which our cell buttons have
+      if (target.closest('button[data-row]')) return;
+
+      // If neither, close numpad
+      setCurrentCell(null);
+    };
+
+    if (currentCell) {
+      window.addEventListener('mousedown', handleClickOutside);
+      window.addEventListener('touchstart', handleClickOutside);
+    }
+    return () => {
+      window.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [currentCell]);
 
   const togglePlayer = (player: Player) => {
     if (selectedPlayers.find(p => p.id === player.id)) {
@@ -386,42 +452,41 @@ export default function NewMatch() {
     }
 
     // Vertical scroll
-    const headerHeight = 48;
-    const panel = document.getElementById('numpad-panel') as HTMLDivElement | null;
+    const panel = document.getElementById('numpad-panel');
+    const panelHeight = panel ? panel.offsetHeight : 350; // Estimate
     
-    // Calculate viewport height (use Visual Viewport if available for mobile keyboards)
     const viewportHeight = window.visualViewport?.height || window.innerHeight;
     const viewportOffsetTop = window.visualViewport?.offsetTop || 0;
     
-    // If system keyboard is active, panel height might be small (just quick points), 
-    // but we need to account for where the keyboard pushes the viewport.
-    // However, window.visualViewport.height ALREADY accounts for the keyboard.
-    // So we just need to make sure the cell is within the visible viewport.
+    // Visible area bottom (in viewport coordinates)
+    // Leave space above numpad
+    const safeBottom = viewportHeight + viewportOffsetTop - panelHeight - 40;
     
-    // Panel height (Quick Points bar)
-    const panelHeight = panel?.offsetHeight || 0;
-    
-    // Safe area at bottom (Quick Points + margin)
-    // We want the cell to be ABOVE the Quick Points.
-    // Quick Points are inside the visual viewport at the bottom.
-    const safeBottom = viewportHeight + viewportOffsetTop - panelHeight - 16;
-    
-    // Top boundary (Header)
-    const safeTop = viewportOffsetTop + headerHeight + 16;
+    // Sticky header height inside container
+    const stickyHeaderHeight = 40;
 
+    // If cell is below safe zone (covered by numpad)
     if (cellRect.bottom > safeBottom) {
-      window.scrollBy({
-        top: cellRect.bottom - safeBottom,
-        behavior: 'smooth'
-      });
-    } else if (cellRect.top < safeTop) {
-      window.scrollBy({
-        top: cellRect.top - safeTop,
-        behavior: 'smooth'
-      });
+       const diff = cellRect.bottom - safeBottom;
+       container.scrollTop += diff;
+    } 
+    // If cell is above safe zone (covered by header)
+    else if (cellRect.top < containerRect.top + stickyHeaderHeight) {
+       const diff = (containerRect.top + stickyHeaderHeight) - cellRect.top;
+       container.scrollTop -= diff;
     }
   };
 
+  // Auto-scroll when cell is selected (and Numpad appears)
+  useEffect(() => {
+    if (currentCell) {
+      // Small delay to allow Numpad to mount/render
+      const timer = setTimeout(() => {
+        scrollActiveCellIntoView(currentCell.row, currentCell.col);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [currentCell]);
 
   const moveCursor = (dir: 'up' | 'down' | 'left' | 'right') => {
     if (!currentCell) return;
@@ -673,33 +738,6 @@ export default function NewMatch() {
             </div>
           </section>
 
-          {/* Keyboard Preference */}
-          <section>
-            <h2 className="text-sm font-semibold text-muted-foreground mb-3">Keyboard Type</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => setKeyboardType('custom')}
-                className={`p-3 rounded-xl border-2 transition-all font-semibold ${
-                  keyboardType === 'custom'
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border hover:border-primary/50 text-muted-foreground'
-                }`}
-              >
-                Custom Numpad
-              </button>
-              <button
-                onClick={() => setKeyboardType('system')}
-                className={`p-3 rounded-xl border-2 transition-all font-semibold ${
-                  keyboardType === 'system'
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border hover:border-primary/50 text-muted-foreground'
-                }`}
-              >
-                System Keyboard
-              </button>
-            </div>
-          </section>
-
           {/* Players */}
           <section>
             <h2 className="text-sm font-semibold text-muted-foreground mb-3">
@@ -913,7 +951,7 @@ export default function NewMatch() {
         )}
       </header>
 
-      <main className={`flex-1 p-6 page-enter space-y-6 ${currentCell ? 'pb-56' : 'pb-6'}`}>
+      <main className="flex-1 p-6 page-enter space-y-6 pb-6">
         {/* Score Table */}
         <div className="overflow-auto -mx-6 px-0 pb-0 mobile-hide-scrollbar relative max-h-[70vh] bg-background" ref={scrollRef}>
           <table className="w-full border-separate min-w-max no-border-spacing">
@@ -1068,6 +1106,10 @@ export default function NewMatch() {
               </tr>
             </tfoot>
           </table>
+          {/* Temporary Spacer for Numpad */}
+          {currentCell && (
+            <div className="w-full h-[50vh] transition-all duration-300" />
+          )}
         </div>
 
         {/* Rankings */}
@@ -1101,6 +1143,9 @@ export default function NewMatch() {
             </div>
           </div>
         )}
+
+        {/* Temporary Spacer for Numpad */}
+        {/* Removed from here, moved inside table container */}
 
       </main>
 
@@ -1138,7 +1183,6 @@ export default function NewMatch() {
           rowIndex={currentCell.row}
           colIndex={currentCell.col}
           playerName={selectedPlayers[currentCell.col]?.name}
-          keyboardType={keyboardType}
         />
       )}
     </div>
