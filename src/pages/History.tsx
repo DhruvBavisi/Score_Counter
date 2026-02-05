@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Crown, ChevronDown, ChevronUp, Download, Trophy, TrendingDown, Trash2 } from 'lucide-react';
+import { ArrowLeft, Crown, ChevronDown, ChevronUp, Download, Trophy, TrendingDown, Trash2, Play } from 'lucide-react';
 import { useGame } from '@/contexts/GameContext';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { toast } from 'sonner';
@@ -226,14 +226,23 @@ export default function History() {
                       </table>
                     </div>
 
-                    {/* Export Button */}
-                    <button
-                      onClick={() => exportToCSV(game)}
-                      className="w-full py-3 rounded-xl bg-secondary text-foreground flex items-center justify-center gap-2 hover:bg-secondary/80 transition-colors"
-                    >
-                      <Download className="w-4 h-4" />
-                      Export to CSV
-                    </button>
+                    {/* Actions */}
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={() => navigate('/new-match', { state: { gameData: game } })}
+                        className="w-full py-3 rounded-xl bg-primary text-primary-foreground flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-glow-sm active:scale-[0.98]"
+                      >
+                        <Play className="w-4 h-4 fill-current" />
+                        Resume Game
+                      </button>
+                      <button
+                        onClick={() => exportToCSV(game)}
+                        className="w-full py-3 rounded-xl bg-secondary text-foreground flex items-center justify-center gap-2 hover:bg-secondary/80 transition-colors"
+                      >
+                        <Download className="w-4 h-4" />
+                        Export to CSV
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

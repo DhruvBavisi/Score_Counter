@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, Trophy, TrendingDown, Check, Plus, Crown, Medal, Play, ChevronDown, Settings, RotateCcw, LogOut, Edit, Save } from 'lucide-react';
 import { useGame, Player } from '@/contexts/GameContext';
@@ -28,6 +29,7 @@ interface RankingPlayer {
 
 export default function NewMatch() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { players: allPlayers, addPlayer, addGame } = useGame();
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const lastRowRef = useRef<HTMLTableRowElement | null>(null);
@@ -66,7 +68,7 @@ export default function NewMatch() {
       }, 300);
     };
     
-    // Drag and Drop State
+    // Pointer-based Drag State for Real-time Reordering
     const [draggingState, setDraggingState] = useState<{
       id: string;
       startIndex: number;
@@ -76,16 +78,13 @@ export default function NewMatch() {
     } | null>(null);
 
     const handlePointerDown = (e: React.PointerEvent, id: string, index: number) => {
-      // Only allow drag if the handle was the target
       const handle = (e.target as HTMLElement).closest('.drag-handle');
       if (!handle) return;
       
-      e.preventDefault();
       const el = e.currentTarget as HTMLElement;
       el.setPointerCapture(e.pointerId);
       
       const rect = el.getBoundingClientRect();
-      // Assuming gap is 8px (space-y-2)
       setDraggingState({
         id,
         startIndex: index,
@@ -98,60 +97,52 @@ export default function NewMatch() {
     const handlePointerMove = (e: React.PointerEvent) => {
       if (!draggingState) return;
       e.preventDefault();
-      setDraggingState(prev => prev ? ({ ...prev, currentY: e.clientY }) : null);
-    };
-
-    const handlePointerUp = (e: React.PointerEvent) => {
-      if (!draggingState) return;
-      e.preventDefault();
       
-      const diff = draggingState.currentY - draggingState.startY;
+      const newY = e.clientY;
+      const diff = newY - draggingState.startY;
       const slots = Math.round(diff / draggingState.itemHeight);
-      const newIndex = Math.max(0, Math.min(tempSelected.length - 1, draggingState.startIndex + slots));
+      const currentIndex = tempSelected.indexOf(draggingState.id);
+      const targetIndex = Math.max(0, Math.min(tempSelected.length - 1, draggingState.startIndex + slots));
       
-      if (newIndex !== draggingState.startIndex) {
+      if (targetIndex !== currentIndex) {
         const newTemp = [...tempSelected];
-        const [removed] = newTemp.splice(draggingState.startIndex, 1);
-        newTemp.splice(newIndex, 0, removed);
+        const [removed] = newTemp.splice(currentIndex, 1);
+        newTemp.splice(targetIndex, 0, removed);
         setTempSelected(newTemp);
       }
       
+      setDraggingState(prev => prev ? ({ ...prev, currentY: newY }) : null);
+    };
+
+    const handlePointerUp = (e: React.PointerEvent) => {
       setDraggingState(null);
     };
 
-    // Calculate visual offset for an item
     const getItemStyle = (index: number, id: string) => {
-      if (!draggingState) return {};
+      if (!draggingState) return { touchAction: 'pan-y' } as React.CSSProperties;
 
-      // The dragged item follows the cursor
-      if (draggingState.id === id) {
+      const isDragged = draggingState.id === id;
+      
+      if (isDragged) {
+        // The dragged item follows the cursor, but we need to account for its new index in the list
+        // to keep the visual offset relative to its STARTING position.
+        const currentIndex = tempSelected.indexOf(id);
+        const indexDiff = currentIndex - draggingState.startIndex;
+        const visualOffset = (draggingState.currentY - draggingState.startY) - (indexDiff * draggingState.itemHeight);
+
         return {
-          transform: `translateY(${draggingState.currentY - draggingState.startY}px)`,
+          transform: `translateY(${visualOffset}px)`,
           zIndex: 50,
           opacity: 0.7,
           cursor: 'grabbing',
-          transition: 'none' // Real-time
-        };
-      }
-
-      // Other items shift to make space
-      const diff = draggingState.currentY - draggingState.startY;
-      const slots = Math.round(diff / draggingState.itemHeight);
-      const targetIndex = Math.max(0, Math.min(tempSelected.length - 1, draggingState.startIndex + slots));
-
-      let translateY = 0;
-      
-      // If item is between start and target, shift it
-      if (index > draggingState.startIndex && index <= targetIndex) {
-        translateY = -draggingState.itemHeight; // Shift up
-      } else if (index < draggingState.startIndex && index >= targetIndex) {
-        translateY = draggingState.itemHeight; // Shift down
+          transition: 'none',
+          touchAction: 'none'
+        } as React.CSSProperties;
       }
 
       return {
-        transform: `translateY(${translateY}px)`,
-        transition: 'transform 200ms ease-out'
-      };
+        touchAction: 'pan-y'
+      } as React.CSSProperties;
     };
 
     return (
@@ -213,29 +204,35 @@ export default function NewMatch() {
                     <ChevronDown className="w-6 h-6" />
                   </button>
                 </header>
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <div className="flex-1 overflow-y-auto p-4 space-y-6">
                   {/* Selected Players (Draggable) */}
-                  {tempSelected.length > 0 && (
-                    <div className="space-y-2 relative">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">Selected ({tempSelected.length})</p>
+                  <div className="space-y-2 relative">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">Selected ({tempSelected.length})</p>
+                    <AnimatePresence mode="popLayout">
                       {tempSelected.map((id, index) => {
                         const player = openGroup.players.find(p => p.id === id);
                         if (!player) return null;
                         return (
-                          <div
+                          <motion.div
                             key={player.id}
+                            layoutId={player.id}
+                            layout
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ duration: 0.4, ease: "easeInOut" }}
                             onPointerDown={(e) => handlePointerDown(e, id, index)}
                             onPointerMove={handlePointerMove}
                             onPointerUp={handlePointerUp}
                             onPointerCancel={handlePointerUp}
                             onClick={(e) => {
-                              // If not dragging, deselect
+                              // Only deselect if not dragging
                               if (!draggingState) {
                                 setTempSelected(prev => prev.filter(pid => pid !== id));
                               }
                             }}
                             style={getItemStyle(index, id)}
-                            className={`w-full p-3 rounded-xl border-2 flex items-center gap-3 border-primary bg-primary/10 select-none touch-none cursor-pointer`}
+                            className={`w-full p-3 rounded-xl border-2 flex items-center gap-3 border-primary bg-primary/10 select-none cursor-pointer`}
                           >
                             <PlayerAvatar name={player.name} size="sm" />
                             <span className="font-medium text-foreground flex-1 text-left select-none">{player.name}</span>
@@ -245,6 +242,7 @@ export default function NewMatch() {
                               </span>
                               <div 
                                 className="drag-handle cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-primary p-3 -mr-2"
+                                style={{ touchAction: 'none' }}
                               >
                                 {/* Thinner equals/hamburger symbol */}
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -252,31 +250,41 @@ export default function NewMatch() {
                                 </svg>
                               </div>
                             </div>
-                          </div>
+                          </motion.div>
                         );
                       })}
-                    </div>
-                  )}
+                    </AnimatePresence>
+                    {tempSelected.length === 0 && (
+                      <p className="text-center text-sm text-muted-foreground py-4 border-2 border-dashed border-border rounded-xl">No players selected</p>
+                    )}
+                  </div>
 
                   {/* Unselected Players */}
-                  {openGroup.players.filter(p => !tempSelected.includes(p.id)).length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">Available</p>
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">Available</p>
+                    <AnimatePresence mode="popLayout">
                       {openGroup.players
                         .filter(p => !tempSelected.includes(p.id))
                         .map((player) => (
-                        <button
+                        <motion.div
                           key={player.id}
+                          layoutId={player.id}
+                          layout
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          transition={{ duration: 0.4, ease: "easeInOut" }}
                           onClick={() => setTempSelected(prev => [...prev, player.id])}
-                          className="w-full p-3 rounded-xl border-2 border-border hover:border-primary/50 transition-all flex items-center gap-3 bg-card"
+                          style={{ touchAction: 'pan-y' }}
+                          className="w-full p-3 rounded-xl border-2 border-border hover:border-primary/50 transition-all flex items-center gap-3 bg-card cursor-pointer"
                         >
                           <div className="w-5" /> {/* Spacer for alignment with drag handle */}
                           <PlayerAvatar name={player.name} size="sm" />
                           <span className="font-medium text-foreground">{player.name}</span>
-                        </button>
+                        </motion.div>
                       ))}
-                    </div>
-                  )}
+                    </AnimatePresence>
+                  </div>
                 </div>
                 <div className="p-6 bg-gradient-to-t from-background to-transparent safe-bottom">
                   <button
@@ -346,6 +354,7 @@ export default function NewMatch() {
   const [menuTarget, setMenuTarget] = useState<string | null>(null);
   const [showRestartDialog, setShowRestartDialog] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
+  const [showFinishDialog, setShowFinishDialog] = useState(false);
   const toggleInactive = (id: string) =>
     setInactivePlayers((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   useEffect(() => {
@@ -378,6 +387,34 @@ export default function NewMatch() {
       window.removeEventListener('touchstart', handleClickOutside);
     };
   }, [currentCell]);
+
+  // Handle game resumption from history
+  useEffect(() => {
+    const gameData = (location.state as any)?.gameData;
+    if (gameData) {
+      // Map names back to players or create temp players
+      const resumedPlayers = gameData.players.map((name: string) => {
+        const existing = allPlayers.find(p => p.name === name);
+        if (existing) return existing;
+        return {
+          id: `temp-${name}-${Date.now()}`,
+          name,
+          createdAt: new Date()
+        };
+      });
+
+      setSelectedPlayers(resumedPlayers);
+      setScores(gameData.rounds);
+      setWinnerRule(gameData.winnerRule);
+      setMatchName(gameData.matchName || '');
+      setGameStarted(true);
+      setGameFinished(false);
+      
+      // Clear location state to avoid re-initializing on refresh
+      window.history.replaceState({}, document.title);
+      toast.success('Resumed game from history');
+    }
+  }, [location.state, allPlayers]);
 
   const togglePlayer = (player: Player) => {
     if (selectedPlayers.find(p => p.id === player.id)) {
@@ -958,13 +995,22 @@ export default function NewMatch() {
         </div>
 
         {!gameFinished && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="p-2 rounded-xl hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-                <Settings className="w-6 h-6" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 p-2 rounded-2xl shadow-xl border-border/50 bg-background/95 backdrop-blur-sm">
+          <div className="flex items-center gap-1">
+            <button 
+              onClick={() => setShowFinishDialog(true)}
+              className="p-2 rounded-xl text-white shadow-glow-sm hover:bg-secondary transition-all active:scale-90"
+              title="Finish Game"
+            >
+              <Check className="w-6 h-6 stroke-[2.5]" />
+            </button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="p-2 rounded-xl hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
+                  <Settings className="w-6 h-6" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 p-2 rounded-2xl shadow-xl border-border/50 bg-background/95 backdrop-blur-sm">
               <DropdownMenuItem
                 onClick={() => {
                   setIsEditing(true);
@@ -1010,8 +1056,9 @@ export default function NewMatch() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-        )}
-      </header>
+        </div>
+      )}
+    </header>
 
       {/* Restart Game Dialog */}
       <AlertDialog open={showRestartDialog} onOpenChange={setShowRestartDialog}>
@@ -1064,6 +1111,32 @@ export default function NewMatch() {
               className="flex-1 h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold border-none shadow-lg shadow-red-500/20"
             >
               Exit
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Finish Game Dialog */}
+      <AlertDialog open={showFinishDialog} onOpenChange={setShowFinishDialog}>
+        <AlertDialogContent className="rounded-3xl max-w-[90vw] sm:max-w-lg border-2 border-border/50 shadow-2xl animate-in fade-in zoom-in duration-300">
+          <AlertDialogHeader className="space-y-4">
+            <div className="mx-auto w-16 h-16 rounded-full bg-primary/15 flex items-center justify-center text-primary mb-2">
+              <Trophy className="w-8 h-8" />
+            </div>
+            <AlertDialogTitle className="text-2xl font-display font-bold text-center">Finish Match?</AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-base">
+              Are you ready to see the final results? This will crown the winner and finalize the scores.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row gap-3 mt-6">
+            <AlertDialogCancel className="flex-1 h-12 rounded-2xl border-2 font-bold hover:bg-secondary">
+              Keep Playing
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={finishGame}
+              className="flex-1 h-12 rounded-2xl bg-gradient-primary text-primary-foreground font-bold border-none shadow-glow active:scale-[0.98] transition-all"
+            >
+              Finish Now
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1268,14 +1341,7 @@ export default function NewMatch() {
       </main>
 
       <div className="p-6 pt-0 pb-4 bg-gradient-to-t from-background to-transparent">
-        {!gameFinished ? (
-          <button
-            onClick={finishGame}
-            className="w-full py-4 rounded-2xl bg-gradient-primary text-primary-foreground font-display font-bold text-lg shadow-glow"
-          >
-            Finish Game
-          </button>
-        ) : (
+        {gameFinished && (
           <button
             onClick={() => navigate('/')}
             className="w-full py-4 rounded-2xl bg-secondary text-foreground font-display font-bold text-lg"

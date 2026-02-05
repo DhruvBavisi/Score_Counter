@@ -28,7 +28,7 @@ export default function Home() {
             Game Hub
           </h2>
           <p className="text-muted-foreground">
-            Track scores, crown winners
+            Track scores, Crown winners
           </p>
         </div>
 
