@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Crown, ChevronDown, ChevronUp, Download, Trophy, TrendingDown, Trash2, Play } from 'lucide-react';
+import { ArrowLeft, Crown, ChevronDown, ChevronUp, Download, Trophy, TrendingDown, Trash2, Play, Clock } from 'lucide-react';
 import { useGame } from '@/contexts/GameContext';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
+import { formatDistanceToNow } from 'date-fns';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,11 +17,49 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+interface DraftInfo {
+  matchName: string;
+  playerCount: number;
+  timestamp: number;
+}
+
 export default function History() {
   const navigate = useNavigate();
   const { games, deleteGame } = useGame();
   const [expandedGame, setExpandedGame] = useState<string | null>(null);
   const [gameToDelete, setGameToDelete] = useState<string | null>(null);
+  const [hasDraft, setHasDraft] = useState(false);
+  const [draftInfo, setDraftInfo] = useState<DraftInfo | null>(null);
+
+  useEffect(() => {
+    const savedDraft = localStorage.getItem('game_draft');
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft);
+        setDraftInfo({
+          matchName: draft.matchName || 'Ongoing Game',
+          playerCount: draft.selectedPlayers?.length || 0,
+          timestamp: draft.timestamp
+        });
+        setHasDraft(true);
+      } catch (e) {
+        console.error('Failed to parse draft:', e);
+      }
+    }
+  }, []);
+
+  const continueDraft = () => {
+    navigate('/new-match', { state: { loadDraft: true } });
+  };
+
+  const dismissDraft = () => {
+    if (window.confirm('Are you sure you want to discard this game draft?')) {
+      localStorage.removeItem('game_draft');
+      setHasDraft(false);
+      setDraftInfo(null);
+      toast.success('Draft discarded');
+    }
+  };
 
   const handleDeleteGame = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -101,6 +141,52 @@ export default function History() {
 
       {/* Content */}
       <main className="p-6 page-enter">
+        <AnimatePresence>
+          {hasDraft && draftInfo && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="mb-8 glass-card overflow-hidden border-primary/30 bg-primary/5"
+            >
+              <div className="w-full p-4 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
+                  <Play className="w-6 h-6 text-primary-foreground fill-current ml-0.5" />
+                </div>
+                
+                <div className="flex-1 text-left">
+                  <h3 className="font-semibold text-foreground">
+                    {draftInfo.matchName}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {draftInfo.playerCount} Players · In Progress
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Play className="w-4 h-4 text-primary fill-current" />
+                  <span className="text-sm font-semibold text-foreground">In Progress</span>
+                  <button
+                    onClick={continueDraft}
+                    className="p-2 rounded-lg hover:bg-primary/10 text-primary transition-colors ml-2"
+                    title="Resume Game"
+                  >
+                    <Play className="w-4 h-4 fill-current" />
+                  </button>
+                  <button 
+                    onClick={dismissDraft}
+                    className="p-2 rounded-lg hover:bg-red-500/10 text-red-500 transition-colors"
+                    title="Discard Draft"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                  <ChevronDown className="w-5 h-5 text-muted-foreground invisible" />
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="space-y-4 stagger-children">
           {games.map((game) => {
             const winnerIndex = getWinnerIndex(game);
@@ -109,9 +195,9 @@ export default function History() {
             return (
               <div key={game.id} className="glass-card overflow-hidden">
                 {/* Game Header */}
-                <button
+                <div
                   onClick={() => toggleExpand(game.id)}
-                  className="w-full p-4 flex items-center gap-4"
+                  className="w-full p-4 flex items-center gap-4 cursor-pointer hover:bg-secondary/30 transition-colors"
                 >
                   <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
                     {game.winnerRule === 'highest' ? (
@@ -146,7 +232,7 @@ export default function History() {
                   ) : (
                     <ChevronDown className="w-5 h-5 text-muted-foreground" />
                   )}
-                </button>
+                </div>
 
                 {/* Expanded Details */}
                 {isExpanded && (

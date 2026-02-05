@@ -8,7 +8,8 @@ import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { Numpad } from '@/components/Numpad';
 import { Confetti } from '@/components/Confetti';
 import { toast } from 'sonner';
-import { Sheet, SheetContent, SheetClose } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetClose, SheetTitle } from '@/components/ui/sheet';
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
@@ -27,6 +28,19 @@ interface RankingPlayer {
   rank: number;
 }
 
+// Draft Interface
+interface DraftGame {
+  matchName: string;
+  selectedPlayers: Player[];
+  scores: number[][];
+  inactivePlayers: string[];
+  timestamp: number;
+  gameStarted: boolean;
+  gameFinished: boolean;
+  winnerRule: 'highest' | 'lowest';
+  numRounds: number;
+}
+
 export default function NewMatch() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -36,8 +50,30 @@ export default function NewMatch() {
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showGroups, setShowGroups] = useState(false);
 
+  // Scoreboard state
+  const [gameStarted, setGameStarted] = useState(false);
+  const [scores, setScores] = useState<number[][]>([]);
+  const [currentCell, setCurrentCell] = useState<{ row: number; col: number } | null>(null);
+  const [numpadValue, setNumpadValue] = useState('');
+  const [gameFinished, setGameFinished] = useState(false);
+  const [inactivePlayers, setInactivePlayers] = useState<string[]>([]);
+  const [menuTarget, setMenuTarget] = useState<string | null>(null);
+  const [showRestartDialog, setShowRestartDialog] = useState(false);
+  const [showExitDialog, setShowExitDialog] = useState(false);
+  const [showFinishDialog, setShowFinishDialog] = useState(false);
 
-  // PlayerList component definition moved to top
+  // Setup state
+  const [winnerRule, setWinnerRule] = useState<'highest' | 'lowest'>('highest');
+  const [numRounds, setNumRounds] = useState(5);
+  const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [savedScores, setSavedScores] = useState<number[][]>([]);
+  const [savedPlayers, setSavedPlayers] = useState<Player[]>([]);
+  const [newPlayerName, setNewPlayerName] = useState('');
+  const [newPlayerGroup, setNewPlayerGroup] = useState('');
+  const [matchName, setMatchName] = useState('');
+
+  // PlayerList component definition
   function PlayerList({ players, selectedPlayers, onUpdateSelected }: {
     players: Player[];
     selectedPlayers: Player[];
@@ -191,6 +227,9 @@ export default function NewMatch() {
               )} 
               hideClose
             >
+              <VisuallyHidden>
+                <SheetTitle>Select Players for {openGroup.name}</SheetTitle>
+              </VisuallyHidden>
               <div className="flex flex-col h-full bg-background">
                 <header className="p-4 border-b border-border flex items-center justify-between">
                   <div>
@@ -324,16 +363,55 @@ export default function NewMatch() {
     );
   }
 
-  // Setup state
-  const [winnerRule, setWinnerRule] = useState<'highest' | 'lowest'>('highest');
-  const [numRounds, setNumRounds] = useState(5);
-  const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
-  const [savedScores, setSavedScores] = useState<number[][]>([]);
-  const [savedPlayers, setSavedPlayers] = useState<Player[]>([]);
-  const [newPlayerName, setNewPlayerName] = useState('');
-  const [newPlayerGroup, setNewPlayerGroup] = useState('');
-  const [matchName, setMatchName] = useState('');
+  // Autosave draft logic
+  useEffect(() => {
+    if (gameStarted && !gameFinished && selectedPlayers.length > 0) {
+      const draft: DraftGame = {
+        matchName,
+        selectedPlayers,
+        scores,
+        inactivePlayers,
+        timestamp: Date.now(),
+        gameStarted,
+        gameFinished,
+        winnerRule,
+        numRounds
+      };
+      localStorage.setItem('game_draft', JSON.stringify(draft));
+    }
+  }, [scores, selectedPlayers, inactivePlayers, matchName, gameStarted, gameFinished, winnerRule, numRounds]);
+
+  const clearDraft = () => {
+    localStorage.removeItem('game_draft');
+  };
+
+  // Load draft on mount if requested
+  useEffect(() => {
+    const shouldLoadDraft = (location.state as any)?.loadDraft;
+    if (shouldLoadDraft) {
+      const savedDraft = localStorage.getItem('game_draft');
+      if (savedDraft) {
+        try {
+          const draft: DraftGame = JSON.parse(savedDraft);
+          setMatchName(draft.matchName);
+          setSelectedPlayers(draft.selectedPlayers);
+          setScores(draft.scores);
+          setInactivePlayers(draft.inactivePlayers);
+          setWinnerRule(draft.winnerRule);
+          setNumRounds(draft.numRounds);
+          setGameStarted(true);
+          setGameFinished(false);
+          
+          window.history.replaceState({}, document.title);
+          toast.success('Resumed draft successfully');
+        } catch (e) {
+          console.error('Failed to load draft:', e);
+          toast.error('Could not load game draft');
+        }
+      }
+    }
+  }, [location.state]);
+
   const toTitleCase = (s: string) =>
     s.replace(/\b\w+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
 
@@ -347,18 +425,6 @@ export default function NewMatch() {
     });
     return Array.from(groups).sort();
   }, [allPlayers]);
-
-  // Scoreboard state
-  const [gameStarted, setGameStarted] = useState(false);
-  const [scores, setScores] = useState<number[][]>([]);
-  const [currentCell, setCurrentCell] = useState<{ row: number; col: number } | null>(null);
-  const [numpadValue, setNumpadValue] = useState('');
-  const [gameFinished, setGameFinished] = useState(false);
-  const [inactivePlayers, setInactivePlayers] = useState<string[]>([]);
-  const [menuTarget, setMenuTarget] = useState<string | null>(null);
-  const [showRestartDialog, setShowRestartDialog] = useState(false);
-  const [showExitDialog, setShowExitDialog] = useState(false);
-  const [showFinishDialog, setShowFinishDialog] = useState(false);
   const toggleInactive = (id: string) =>
     setInactivePlayers((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   useEffect(() => {
@@ -500,6 +566,7 @@ export default function NewMatch() {
     } else {
       // New game
       setScores(Array(numRounds).fill(null).map(() => Array(selectedPlayers.length).fill(0)));
+      clearDraft(); // Clear any previous draft when starting a fresh game
     }
     setGameStarted(true);
   };
@@ -676,6 +743,7 @@ export default function NewMatch() {
       matchName,
     });
     setGameFinished(true);
+    clearDraft();
     toast.success('Game saved!');
   };
 
@@ -726,14 +794,18 @@ export default function NewMatch() {
     return (
       <div className="min-h-screen bg-background safe-top safe-bottom">
         {/* Header */}
-        <header className="p-4 flex items-center gap-4 border-b border-border">
-          <button
-            onClick={() => navigate('/')}
-            className="p-2 rounded-xl hover:bg-secondary transition-colors"
-          >
-            <ArrowLeft className="w-6 h-6 text-foreground" />
-          </button>
-          <h1 className="font-display text-lg font-bold text-foreground">New Match</h1>
+        <header className="px-8 py-5 flex items-center gap-4 border-b border-border">
+          {!isEditing && (
+            <button
+              onClick={() => navigate('/')}
+              className="p-2 rounded-xl hover:bg-secondary transition-colors"
+            >
+              <ArrowLeft className="w-6 h-6 text-foreground" />
+            </button>
+          )}
+          <h1 className="font-display text-lg font-bold text-foreground">
+            {isEditing ? 'Edit Game' : 'New Match'}
+          </h1>
         </header>
 
         <main className="p-6 pb-32 page-enter space-y-8">
@@ -963,7 +1035,7 @@ export default function NewMatch() {
             className="w-full py-4 rounded-2xl bg-gradient-primary text-primary-foreground font-display font-bold text-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-glow"
           >
             <Play className="w-5 h-5" />
-            Start Game
+            {isEditing ? 'Resume Game' : 'Start Game'}
           </button>
         </div>
       </div>
@@ -978,22 +1050,7 @@ export default function NewMatch() {
       {/* Header */}
       <header className="p-4 flex items-center justify-between border-b border-border">
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => {
-              if (gameFinished) {
-                navigate('/');
-              } else {
-                setIsEditing(true);
-                setSavedScores(scores);
-                setSavedPlayers(selectedPlayers);
-                setGameStarted(false);
-              }
-            }}
-            className="p-2 rounded-xl hover:bg-secondary transition-colors"
-          >
-            {/* <ArrowLeft className="w-6 h-6 text-foreground" /> */}
-          </button>
-          <h1 className="font-display text-lg font-bold text-foreground">
+          <h1 className="font-display text-lg font-bold text-foreground pl-2">
             {matchName || 'Match Score'}
           </h1>
         </div>
@@ -1111,7 +1168,10 @@ export default function NewMatch() {
               Stay
             </AlertDialogCancel>
             <AlertDialogAction 
-              onClick={() => navigate('/')}
+              onClick={() => {
+                navigate('/');
+                clearDraft();
+              }}
               className="flex-1 h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold border-none shadow-lg shadow-red-500/20"
             >
               Exit
