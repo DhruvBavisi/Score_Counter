@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Trophy, TrendingDown, Check, Plus, Crown, Medal, Play, ChevronDown, Settings, RotateCcw, LogOut, Edit, Save } from 'lucide-react';
+import { ArrowLeft, Trophy, TrendingDown, Check, Plus, Crown, Medal, Play, ChevronDown, Settings, RotateCcw, LogOut, Edit, Save, X } from 'lucide-react';
 import { useGame, Player } from '@/contexts/GameContext';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { Numpad } from '@/components/Numpad';
@@ -221,35 +221,39 @@ export default function NewMatch() {
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
                             transition={{ duration: 0.4, ease: "easeInOut" }}
-                            onPointerDown={(e) => handlePointerDown(e, id, index)}
-                            onPointerMove={handlePointerMove}
-                            onPointerUp={handlePointerUp}
-                            onPointerCancel={handlePointerUp}
-                            onClick={(e) => {
-                              // Only deselect if not dragging
-                              if (!draggingState) {
-                                setTempSelected(prev => prev.filter(pid => pid !== id));
-                              }
-                            }}
                             style={getItemStyle(index, id)}
-                            className={`w-full p-3 rounded-xl border-2 flex items-center gap-3 border-primary bg-primary/10 select-none cursor-pointer`}
+                            className="flex items-center gap-2 group"
                           >
-                            <PlayerAvatar name={player.name} size="sm" />
-                            <span className="font-medium text-foreground flex-1 text-left select-none">{player.name}</span>
-                            <div className="flex items-center gap-3">
-                              <span className="px-2 py-1 rounded-md bg-primary/15 text-primary font-bold text-sm min-w-[2rem] text-center select-none">
-                                {index + 1}
-                              </span>
-                              <div 
-                                className="drag-handle cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-primary p-3 -mr-2"
-                                style={{ touchAction: 'none' }}
-                              >
-                                {/* Thinner equals/hamburger symbol */}
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                                  <path d="M3 9h18M3 15h18" />
-                                </svg>
+                            <div
+                              onPointerDown={(e) => handlePointerDown(e, id, index)}
+                              onPointerMove={handlePointerMove}
+                              onPointerUp={handlePointerUp}
+                              onPointerCancel={handlePointerUp}
+                              className="flex-1 p-3 rounded-xl border-2 flex items-center gap-3 border-primary bg-primary/10 select-none"
+                            >
+                              <PlayerAvatar name={player.name} size="sm" />
+                              <span className="font-medium text-foreground flex-1 text-left select-none">{player.name}</span>
+                              <div className="flex items-center gap-3">
+                                <span className="px-2 py-1 rounded-md bg-primary/15 text-primary font-bold text-sm min-w-[2rem] text-center select-none">
+                                  {index + 1}
+                                </span>
+                                <div 
+                                  className="drag-handle cursor-grab active:cursor-grabbing text-muted-foreground/50 hover:text-primary p-3 -mr-2"
+                                  style={{ touchAction: 'none' }}
+                                >
+                                  {/* Thinner equals/hamburger symbol */}
+                                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M3 9h18M3 15h18" />
+                                  </svg>
+                                </div>
                               </div>
                             </div>
+                            <button
+                              onClick={() => setTempSelected(prev => prev.filter(pid => pid !== id))}
+                              className="p-2 rounded-full hover:bg-red-500/10 text-red-500 transition-colors shrink-0"
+                            >
+                              <X className="w-6 h-6" />
+                            </button>
                           </motion.div>
                         );
                       })}
