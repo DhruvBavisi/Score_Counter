@@ -377,7 +377,7 @@
 
   /* Theme Toggle */
   .theme-toggle {
-    @apply relative w-14 h-7 rounded-full transition-colors duration-300;
+    @apply relative w-14 h-7 rounded-full transition-colors duration-200;
     background: hsl(var(--secondary));
   }
 
@@ -386,7 +386,7 @@
   }
 
   .theme-toggle-knob {
-    @apply absolute top-0.5 left-0.5 w-6 h-6 rounded-full transition-transform duration-300;
+    @apply absolute top-0.5 left-0.5 w-6 h-6 rounded-full transition-transform duration-200;
     background: hsl(var(--background));
     box-shadow: var(--shadow-sm);
   }

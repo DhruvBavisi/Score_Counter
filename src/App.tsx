@@ -18,7 +18,7 @@ const App = () => (
     <ThemeProvider>
       <GameProvider>
         <TooltipProvider>
-          <Toaster position="top-center" />
+          <Toaster position="top-center" duration={1200} />
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Home />} />

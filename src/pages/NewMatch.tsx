@@ -251,7 +251,7 @@ export default function NewMatch() {
             <SheetContent 
               side="bottom" 
               className={cn(
-                "h-[85vh] p-0 rounded-t-3xl outline-none transition-transform duration-300 ease-in-out",
+                "h-[85vh] p-0 rounded-t-3xl outline-none transition-transform duration-200 ease-in-out",
                 isClosing ? "translate-y-full" : "translate-y-0"
               )} 
               hideClose
@@ -288,7 +288,7 @@ export default function NewMatch() {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            transition={{ duration: 0.4, ease: "easeInOut" }}
+                            transition={{ duration: 0.2, ease: "easeInOut" }}
                             style={getItemStyle(index, id)}
                             className="flex items-center gap-2 group"
                           >
@@ -345,7 +345,7 @@ export default function NewMatch() {
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.95 }}
-                          transition={{ duration: 0.4, ease: "easeInOut" }}
+                          transition={{ duration: 0.2, ease: "easeInOut" }}
                           onClick={() => setTempSelected(prev => [...prev, player.id])}
                           style={{ touchAction: 'pan-y' }}
                           className="w-full p-3 rounded-xl border-2 border-border hover:border-primary/50 transition-all flex items-center gap-3 bg-card cursor-pointer"
@@ -1172,7 +1172,7 @@ export default function NewMatch() {
 
       {/* Restart Game Dialog */}
       <AlertDialog open={showRestartDialog} onOpenChange={setShowRestartDialog}>
-        <AlertDialogContent className="rounded-3xl max-w-[90vw] sm:max-w-lg border-2 border-border/50 shadow-2xl animate-in fade-in zoom-in duration-300">
+        <AlertDialogContent className="rounded-3xl max-w-[90vw] sm:max-w-lg border-2 border-border/50 shadow-2xl animate-in fade-in zoom-in duration-200">
           <AlertDialogHeader className="space-y-4">
             <div className="mx-auto w-16 h-16 rounded-full bg-orange-500/15 flex items-center justify-center text-orange-500 mb-2">
               <RotateCcw className="w-8 h-8" />
@@ -1202,11 +1202,10 @@ export default function NewMatch() {
 
       {/* New Game Dialog */}
       <AlertDialog open={showNewGameDialog} onOpenChange={setShowNewGameDialog}>
-        <AlertDialogContent className="rounded-3xl max-w-[90vw] sm:max-w-lg border-2 border-border/50 shadow-2xl animate-in fade-in zoom-in duration-300">
+        <AlertDialogContent className="rounded-3xl max-w-[90vw] sm:max-w-lg border-2 border-border/50 shadow-2xl animate-in fade-in zoom-in duration-200">
           <AlertDialogHeader className="space-y-4">
             <div className="mx-auto w-16 h-16 rounded-full bg-primary/15 flex items-center justify-center text-primary mb-2 relative">
               <Gamepad2 className="w-8 h-8" />
-              <Plus className="w-4 h-4 absolute right-0 top-0 bg-background rounded-full border-2 border-primary/20" />
             </div>
             <AlertDialogTitle className="text-2xl font-display font-bold text-center">Start New Game?</AlertDialogTitle>
             <AlertDialogDescription className="text-center text-base">
@@ -1241,7 +1240,7 @@ export default function NewMatch() {
 
       {/* Exit Game Dialog */}
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
-        <AlertDialogContent className="rounded-3xl max-w-[90vw] sm:max-w-lg border-2 border-border/50 shadow-2xl animate-in fade-in zoom-in duration-300">
+        <AlertDialogContent className="rounded-3xl max-w-[90vw] sm:max-w-lg border-2 border-border/50 shadow-2xl animate-in fade-in zoom-in duration-200">
           <AlertDialogHeader className="space-y-4">
             <div className="mx-auto w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center text-red-500 mb-2">
               <LogOut className="w-8 h-8" />
@@ -1270,7 +1269,7 @@ export default function NewMatch() {
 
       {/* Finish Game Dialog */}
       <AlertDialog open={showFinishDialog} onOpenChange={setShowFinishDialog}>
-        <AlertDialogContent className="rounded-3xl max-w-[90vw] sm:max-w-lg border-2 border-border/50 shadow-2xl animate-in fade-in zoom-in duration-300">
+        <AlertDialogContent className="rounded-3xl max-w-[90vw] sm:max-w-lg border-2 border-border/50 shadow-2xl animate-in fade-in zoom-in duration-200">
           <AlertDialogHeader className="space-y-4">
             <div className="mx-auto w-16 h-16 rounded-full bg-primary/15 flex items-center justify-center text-primary mb-2">
               <Trophy className="w-8 h-8" />
@@ -1451,7 +1450,7 @@ export default function NewMatch() {
           </table>
           {/* Temporary Spacer for Numpad */}
           {currentCell && (
-            <div className="w-full h-[50vh] transition-all duration-300" />
+            <div className="w-full h-[50vh] transition-all duration-200" />
           )}
         </div>
 
