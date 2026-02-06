@@ -832,7 +832,7 @@ export default function NewMatch() {
           {!isEditing && (
             <button
               onClick={() => navigate('/')}
-              className="p-2 pl-0 rounded-xl hover:bg-secondary transition-colors"
+              className="p-2 rounded-xl hover:bg-secondary transition-colors"
             >
               <ArrowLeft className="w-6 h-6 text-foreground" />
             </button>
