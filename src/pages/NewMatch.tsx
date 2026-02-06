@@ -73,6 +73,34 @@ export default function NewMatch() {
   const [newPlayerGroup, setNewPlayerGroup] = useState('');
   const [matchName, setMatchName] = useState('');
 
+  // Prevent iOS/mobile swipe-from-left-edge back navigation
+  useEffect(() => {
+    const shouldPreventSwipe = (gameStarted && !gameFinished) || (!gameStarted && isEditing);
+    if (!shouldPreventSwipe) return;
+    
+    // CSS prevention
+    document.documentElement.style.overscrollBehavior = 'none';
+    
+    // Touch event fallback for older browsers
+    let startX = 0;
+    const handleTouchStart = (e: TouchEvent) => { startX = e.touches[0].clientX; };
+    const handleTouchMove = (e: TouchEvent) => {
+      // If swipe starts from the left edge (first 50px)
+      if (startX < 50 && e.touches[0].clientX - startX > 10) {
+        e.preventDefault();
+      }
+    };
+    
+    document.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    
+    return () => {
+      document.documentElement.style.overscrollBehavior = '';
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
+    };
+  }, [gameStarted, gameFinished, isEditing]);
+
   // PlayerList component definition
   function PlayerList({ players, selectedPlayers, onUpdateSelected }: {
     players: Player[];
@@ -792,7 +820,10 @@ export default function NewMatch() {
   // Setup View
   if (!gameStarted) {
     return (
-      <div className="min-h-screen bg-background safe-top safe-bottom">
+      <div 
+        className="min-h-screen bg-background safe-top safe-bottom"
+        style={isEditing ? { overscrollBehavior: 'none', overscrollBehaviorX: 'none' } : {}}
+      >
         {/* Header */}
         <header className="px-8 py-5 flex items-center gap-4 border-b border-border">
           {!isEditing && (
@@ -1044,7 +1075,10 @@ export default function NewMatch() {
 
   // Scoreboard View
   return (
-    <div className="min-h-screen bg-background safe-top safe-bottom flex flex-col">
+    <div 
+      className="min-h-screen bg-background safe-top safe-bottom flex flex-col"
+      style={{ overscrollBehavior: 'none', overscrollBehaviorX: 'none' }}
+    >
       {gameFinished && <Confetti />}
 
       {/* Header */}
