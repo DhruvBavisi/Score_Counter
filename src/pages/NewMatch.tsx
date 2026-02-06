@@ -828,7 +828,7 @@ export default function NewMatch() {
         style={isEditing ? { overscrollBehavior: 'none', overscrollBehaviorX: 'none' } : {}}
       >
         {/* Header */}
-        <header className="px-8 py-5 flex items-center gap-4 border-b border-border">
+        <header className="px-6 py-5 flex items-center gap-4 border-b border-border">
           {!isEditing && (
             <button
               onClick={() => navigate('/')}
