@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, Trophy, TrendingDown, Check, Plus, Crown, Medal, Play, ChevronDown, Settings, RotateCcw, LogOut, Edit, Save, X } from 'lucide-react';
+import { ArrowLeft, Trophy, TrendingDown, Check, Plus, Crown, Medal, Play, ChevronDown, Settings, RotateCcw, LogOut, Edit, Save, X, Gamepad2 } from 'lucide-react';
 import { useGame, Player } from '@/contexts/GameContext';
 import { PlayerAvatar } from '@/components/PlayerAvatar';
 import { Numpad } from '@/components/Numpad';
@@ -61,6 +61,7 @@ export default function NewMatch() {
   const [showRestartDialog, setShowRestartDialog] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [showFinishDialog, setShowFinishDialog] = useState(false);
+  const [showNewGameDialog, setShowNewGameDialog] = useState(false);
 
   // Setup state
   const [winnerRule, setWinnerRule] = useState<'highest' | 'lowest'>('highest');
@@ -357,7 +358,7 @@ export default function NewMatch() {
                     </AnimatePresence>
                   </div>
                 </div>
-                <div className="p-6 bg-gradient-to-t from-background to-transparent safe-bottom">
+                <div className="p-6 pb-4 bg-gradient-to-t from-background to-transparent">
                   <button
                     onClick={() => {
                       handleCloseGroup(() => {
@@ -1102,10 +1103,24 @@ export default function NewMatch() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="p-2 rounded-xl hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground">
-                  <Settings className="w-6 h-6" />
+                  <Settings className="w-6 h-6 text-white" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64 p-2 rounded-2xl shadow-xl border-border/50 bg-background/95 backdrop-blur-sm">
+              
+              <DropdownMenuItem
+                onClick={() => setShowNewGameDialog(true)}
+                className="flex items-center gap-3 p-3 rounded-xl cursor-pointer font-semibold text-foreground hover:bg-primary/10 focus:bg-primary/10 transition-colors mt-1"
+              >
+                <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/15 text-primary">
+                    <Gamepad2 className="w-5 h-5"/>
+                </div>
+                <div className="flex flex-col">
+                  <span>New Game</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">Start a fresh match</span>
+                </div>
+              </DropdownMenuItem>
+              
               <DropdownMenuItem
                 onClick={() => {
                   setIsEditing(true);
@@ -1167,8 +1182,8 @@ export default function NewMatch() {
               This will reset all current scores to zero. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-row gap-3 mt-6">
-            <AlertDialogCancel className="flex-1 h-12 rounded-2xl border-2 font-bold hover:bg-secondary">
+          <AlertDialogFooter className="flex flex-row gap-3 mt-6 sm:space-x-0">
+            <AlertDialogCancel className="flex-1 h-12 rounded-2xl border-2 font-bold text-base hover:bg-secondary mt-0">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction 
@@ -1177,9 +1192,48 @@ export default function NewMatch() {
                 setGameFinished(false);
                 toast.success('Game restarted');
               }}
-              className="flex-1 h-12 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-bold border-none shadow-lg shadow-orange-500/20"
+              className="flex-1 h-12 rounded-2xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-base border-none shadow-lg shadow-orange-500/20 mt-0"
             >
               Restart
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* New Game Dialog */}
+      <AlertDialog open={showNewGameDialog} onOpenChange={setShowNewGameDialog}>
+        <AlertDialogContent className="rounded-3xl max-w-[90vw] sm:max-w-lg border-2 border-border/50 shadow-2xl animate-in fade-in zoom-in duration-300">
+          <AlertDialogHeader className="space-y-4">
+            <div className="mx-auto w-16 h-16 rounded-full bg-primary/15 flex items-center justify-center text-primary mb-2 relative">
+              <Gamepad2 className="w-8 h-8" />
+              <Plus className="w-4 h-4 absolute right-0 top-0 bg-background rounded-full border-2 border-primary/20" />
+            </div>
+            <AlertDialogTitle className="text-2xl font-display font-bold text-center">Start New Game?</AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-base">
+              The current session will end and will not be saved. Are you sure you want to start a fresh match?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex flex-row gap-3 mt-6 sm:space-x-0">
+            <AlertDialogCancel className="flex-1 h-12 rounded-2xl border-2 font-bold text-base hover:bg-secondary mt-0">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                setMatchName('');
+                setSelectedPlayers([]);
+                setScores([]);
+                setInactivePlayers([]);
+                setWinnerRule('highest');
+                setNumRounds(5);
+                setIsEditing(false);
+                setGameStarted(false);
+                setGameFinished(false);
+                clearDraft();
+                toast.success('Started new game');
+              }}
+              className="flex-1 h-12 rounded-2xl bg-gradient-primary text-primary-foreground text-base font-bold border-none shadow-glow active:scale-[0.98] transition-all mt-0"
+            >
+              New Game
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1197,8 +1251,8 @@ export default function NewMatch() {
               Your current game progress will be lost. Are you sure you want to go back to the home screen?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-row gap-3 mt-6">
-            <AlertDialogCancel className="flex-1 h-12 rounded-2xl border-2 font-bold hover:bg-secondary">
+          <AlertDialogFooter className="flex flex-row gap-3 mt-6 sm:space-x-0">
+            <AlertDialogCancel className="flex-1 h-12 rounded-2xl border-2 font-bold text-base hover:bg-secondary mt-0">
               Stay
             </AlertDialogCancel>
             <AlertDialogAction 
@@ -1206,7 +1260,7 @@ export default function NewMatch() {
                 navigate('/');
                 clearDraft();
               }}
-              className="flex-1 h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold border-none shadow-lg shadow-red-500/20"
+              className="flex-1 h-12 rounded-2xl bg-red-600 hover:bg-red-700 text-white text-base font-bold border-none shadow-lg shadow-red-500/20 mt-0"
             >
               Exit
             </AlertDialogAction>
@@ -1226,13 +1280,13 @@ export default function NewMatch() {
               Are you ready to see the final results? This will crown the winner and finalize the scores.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-row gap-3 mt-6">
-            <AlertDialogCancel className="flex-1 h-12 rounded-2xl border-2 font-bold hover:bg-secondary">
+          <AlertDialogFooter className="flex flex-row gap-3 mt-6 sm:space-x-0">
+            <AlertDialogCancel className="flex-1 h-12 rounded-2xl border-2 font-bold hover:bg-secondary mt-0">
               Keep Playing
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={finishGame}
-              className="flex-1 h-12 rounded-2xl bg-gradient-primary text-primary-foreground font-bold border-none shadow-glow active:scale-[0.98] transition-all"
+              className="flex-1 h-12 rounded-2xl bg-gradient-primary text-primary-foreground font-bold border-none shadow-glow active:scale-[0.98] transition-all mt-0"
             >
               Finish Now
             </AlertDialogAction>
