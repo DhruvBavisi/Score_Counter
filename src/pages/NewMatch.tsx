@@ -828,11 +828,11 @@ export default function NewMatch() {
         style={isEditing ? { overscrollBehavior: 'none', overscrollBehaviorX: 'none' } : {}}
       >
         {/* Header */}
-        <header className="px-6 py-5 flex items-center gap-4 border-b border-border">
+        <header className="px-8 py-5 flex items-center gap-4 border-b border-border">
           {!isEditing && (
             <button
               onClick={() => navigate('/')}
-              className="p-2 rounded-xl hover:bg-secondary transition-colors"
+              className="p-2 -ml-2 rounded-xl hover:bg-secondary transition-colors"
             >
               <ArrowLeft className="w-6 h-6 text-foreground" />
             </button>
