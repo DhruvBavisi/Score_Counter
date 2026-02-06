@@ -14,6 +14,7 @@ export default function Players() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editGroup, setEditGroup] = useState('');
+  const [showGroups, setShowGroups] = useState(false);
 
   // Generate unique groups from all players
   const uniqueGroups = useMemo(() => {
@@ -87,22 +88,58 @@ export default function Players() {
             onChange={(e) => setNewPlayerName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAddPlayer()}
             placeholder="Enter player name..."
-            className="px-4 py-3 rounded-xl bg-secondary text-foreground placeholder:text-muted-foreground border border-border focus:border-primary focus:outline-none transition-colors shadow-sm"
+            className="px-4 py-3 rounded-xl bg-secondary text-foreground placeholder:text-muted-foreground border border-border focus:border-primary focus:outline-none transition-colors shadow-sm text-base"
           />
-          <div className="relative">
+          <div className="relative group">
             <input
               type="text"
               value={newPlayerGroup}
-              onChange={(e) => setNewPlayerGroup(e.target.value)}
+              onChange={(e) => {
+                setNewPlayerGroup(e.target.value);
+                setShowGroups(true);
+              }}
+              onFocus={() => setShowGroups(true)}
+              onBlur={() => {
+                setTimeout(() => setShowGroups(false), 200);
+              }}
+              onClick={() => setShowGroups(true)}
               placeholder="Group (optional)"
-              list="player-groups-list"
-              className="px-4 py-3 rounded-xl bg-secondary text-foreground placeholder:text-muted-foreground border border-border focus:border-primary focus:outline-none transition-colors shadow-sm"
+              className="px-4 py-3 w-full rounded-xl bg-secondary text-foreground placeholder:text-muted-foreground border border-border focus:border-primary focus:outline-none transition-colors shadow-sm text-base pr-10"
             />
-            <datalist id="player-groups-list">
-              {uniqueGroups.map((group) => (
-                <option key={group} value={group} />
-              ))}
-            </datalist>
+            <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none transition-transform duration-200 ${showGroups ? 'rotate-180' : ''}`} />
+            
+            {showGroups && (
+              <div className="absolute z-50 mt-1 w-full rounded-xl border border-border bg-background shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                <div className="max-h-48 overflow-y-auto">
+                  {uniqueGroups
+                    .filter(group => group.toLowerCase().includes(newPlayerGroup.toLowerCase()))
+                    .length > 0 ? (
+                    uniqueGroups
+                      .filter(group => group.toLowerCase().includes(newPlayerGroup.toLowerCase()))
+                      .map(group => (
+                        <button
+                          key={group}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setNewPlayerGroup(group);
+                            setShowGroups(false);
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-primary/10 transition-colors"
+                        >
+                          {group}
+                        </button>
+                      ))
+                  ) : (
+                    newPlayerGroup.trim() !== '' && (
+                      <div className="px-4 py-2 text-xs text-muted-foreground italic">
+                        Create group "{newPlayerGroup}"
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            )}
           </div>
           <button
             onClick={handleAddPlayer}
@@ -206,7 +243,7 @@ function GroupedPlayers({
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && saveEdit(player.id)}
-                      className="flex-1 px-3 py-2 rounded-lg bg-background text-foreground border border-primary focus:outline-none"
+                      className="flex-1 px-3 py-2 rounded-lg bg-background text-foreground border border-primary focus:outline-none text-base"
                       autoFocus
                     />
                     <input
@@ -215,7 +252,7 @@ function GroupedPlayers({
                       onChange={(e) => setEditGroup(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && saveEdit(player.id)}
                       placeholder="Group"
-                      className="px-3 py-2 rounded-lg bg-background text-foreground border border-border focus:outline-none"
+                      className="px-3 py-2 rounded-lg bg-background text-foreground border border-border focus:outline-none text-base"
                     />
                     <button
                       onClick={() => saveEdit(player.id)}

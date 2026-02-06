@@ -49,6 +49,8 @@ export default function NewMatch() {
   const lastRowRef = useRef<HTMLTableRowElement | null>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showGroups, setShowGroups] = useState(false);
+  const [isNewPlayerNameFocused, setIsNewPlayerNameFocused] = useState(false);
+  const [isNewPlayerGroupFocused, setIsNewPlayerGroupFocused] = useState(false);
 
   // Scoreboard state
   const [gameStarted, setGameStarted] = useState(false);
@@ -830,7 +832,7 @@ export default function NewMatch() {
           {!isEditing && (
             <button
               onClick={() => navigate('/')}
-              className="p-2 rounded-xl hover:bg-secondary transition-colors"
+              className="p-2 pl-0 rounded-xl hover:bg-secondary transition-colors"
             >
               <ArrowLeft className="w-6 h-6 text-foreground" />
             </button>
@@ -949,21 +951,23 @@ export default function NewMatch() {
 
   <div className="flex-1 relative group">
     <input
-      type="text"
-      value={newPlayerName}
-      onChange={(e) => setNewPlayerName(e.target.value)}
-      onKeyDown={(e) => e.key === 'Enter' && handleAddNewPlayer()}
-      placeholder="Enter player name"
-      className="
-        w-full px-5 py-3 rounded-2xl
-        bg-secondary text-foreground
-        placeholder:text-muted-foreground
-        border border-border
-        focus:border-primary focus:ring-2 focus:ring-primary/30
-        outline-none transition-all
-        font-display text-sm shadow-sm
-      "
-    />
+        type="text"
+        value={newPlayerName}
+        onChange={(e) => setNewPlayerName(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && handleAddNewPlayer()}
+        onFocus={() => setIsNewPlayerNameFocused(true)}
+        onBlur={() => setIsNewPlayerNameFocused(false)}
+        placeholder="Enter player name"
+        className="
+          w-full px-5 py-3 rounded-2xl
+          bg-secondary text-foreground
+          placeholder:text-muted-foreground
+          border border-border
+          focus:border-primary focus:ring-2 focus:ring-primary/30
+          outline-none transition-all
+          font-display text-base shadow-sm
+        "
+      />
   </div>
 
   <button
@@ -988,13 +992,26 @@ export default function NewMatch() {
     {/* Group Selector */}
   <div className="relative">
 
-    <div className="relative group">
+    <div className="relative group w-72">
       <input
         type="text"
         value={newPlayerGroup}
-        onChange={(e) => setNewPlayerGroup(e.target.value)}
-        onFocus={() => setShowGroups(true)}
-        onBlur={() => setShowGroups(false)}
+        onChange={(e) => {
+          setNewPlayerGroup(e.target.value);
+          setShowGroups(true);
+        }}
+        onFocus={() => {
+          setShowGroups(true);
+          setIsNewPlayerGroupFocused(true);
+        }}
+        onBlur={() => {
+          // Slight timeout to allow onMouseDown to fire on dropdown items
+          setTimeout(() => {
+            setShowGroups(false);
+            setIsNewPlayerGroupFocused(false);
+          }, 200);
+        }}
+        onClick={() => setShowGroups(true)}
         placeholder="Select or create a group"
         className="
           w-full px-5 py-3 pr-12 rounded-2xl mb-3
@@ -1003,46 +1020,51 @@ export default function NewMatch() {
           border border-border 
           focus:border-primary focus:ring-2 focus:ring-primary/30 
           outline-none transition-all 
-          font-display text-sm shadow-sm
+          font-display text-base shadow-sm
           appearance-none 
           [&::-webkit-calendar-picker-indicator]:hidden
           [&::-webkit-list-button]:hidden
         "
       />
 
-      <ChevronDown className="absolute right-4 top-1/2 -translate-y-[70%] w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-
-      {/* <span className="absolute left-4 -top-2 text-xs bg-background px-2 text-muted-foreground font-semibold">
-        Group
-      </span> */}
+      <ChevronDown className={`absolute right-4 top-1/2 -translate-y-[70%] w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-all duration-200 ${showGroups ? 'rotate-180' : ''}`} />
     </div>
 
-    {showGroups && uniqueGroups.length > 0 && (
-      <div className="absolute z-50 mt-2 w-full rounded-2xl border border-border bg-background shadow-xl overflow-hidden animate-fade-in">
+    {showGroups && (
+      <div className="absolute z-50 mt-[-8px] w-72 rounded-2xl border border-border bg-background shadow-xl overflow-hidden animate-in fade-in zoom-in duration-200">
         <div className="max-h-56 overflow-y-auto">
           {uniqueGroups
             .filter(group => group.toLowerCase().includes(newPlayerGroup.toLowerCase()))
-            .map(group => (
-              <button
-              key={group}
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault();       // prevents input blur
-                setNewPlayerGroup(group);
-                setShowGroups(false);
-              }}
-              className="
-                w-full text-left px-4 py-3
-                font-display text-sm
-                text-foreground
-                hover:bg-primary/10
-                transition-colors
-              "
-            >
-              {group}
-            </button> 
-
-            ))}
+            .length > 0 ? (
+            uniqueGroups
+              .filter(group => group.toLowerCase().includes(newPlayerGroup.toLowerCase()))
+              .map(group => (
+                <button
+                  key={group}
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.preventDefault(); // prevents input blur
+                    setNewPlayerGroup(group);
+                    setShowGroups(false);
+                  }}
+                  className="
+                    w-full text-left px-4 py-3
+                    font-display text-sm
+                    text-foreground
+                    hover:bg-primary/10
+                    transition-colors
+                  "
+                >
+                  {group}
+                </button>
+              ))
+            ) : (
+              newPlayerGroup.trim() !== '' && (
+                <div className="px-4 py-3 text-sm text-muted-foreground font-display italic">
+                  Create new group "{newPlayerGroup}"
+                </div>
+              )
+            )}
         </div>
       </div>
     )}
