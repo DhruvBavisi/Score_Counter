@@ -1540,6 +1540,7 @@ export default function NewMatch() {
           rowIndex={currentCell.row}
           colIndex={currentCell.col}
           playerName={selectedPlayers[currentCell.col]?.name}
+          matchName={matchName}
         />
       )}
     </div>

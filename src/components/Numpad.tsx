@@ -1,6 +1,6 @@
  
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 
 interface NumpadProps {
   value: string;
@@ -12,9 +12,13 @@ interface NumpadProps {
   colIndex?: number;
   playerName?: string;
   onPanX?: (dx: number) => void;
+  matchName?: string;
 }
 
-export function Numpad({ value, onChange, onEnter, onClose, onMove, rowIndex, colIndex, playerName, onPanX }: NumpadProps) {
+export function Numpad({ value, onChange, onEnter, onClose, onMove, rowIndex, colIndex, playerName, onPanX, matchName }: NumpadProps) {
+  const isBadamSatti = matchName?.toLowerCase().includes('badam satti');
+  const [mode, setMode] = useState<'standard' | 'badam'>(isBadamSatti ? 'badam' : 'standard');
+
   const handleButton = (btn: string) => {
     if (btn === 'C') {
       onChange('');
@@ -30,10 +34,16 @@ export function Numpad({ value, onChange, onEnter, onClose, onMove, rowIndex, co
       onEnter();
     } else {
       // Number buttons
-      if (value === '0' && btn !== '.') {
-        onChange(btn);
+      if (mode === 'badam') {
+        const current = parseInt(value || '0', 10);
+        const add = parseInt(btn, 10);
+        onChange((current + add).toString());
       } else {
-        onChange(value + btn);
+        if (value === '0' && btn !== '.') {
+          onChange(btn);
+        } else {
+          onChange(value + btn);
+        }
       }
     }
   };
@@ -49,11 +59,18 @@ export function Numpad({ value, onChange, onEnter, onClose, onMove, rowIndex, co
     onChange(newValue);
   };
 
-  const buttons = [
+  const standardButtons = [
     ['7', '8', '9'],
     ['4', '5', '6'],
     ['1', '2', '3'],
     ['+/-', '0', '←'],
+  ];
+
+  const badamButtons = [
+    ['1', '2', '3', '4'],
+    ['5', '6', '7', '8'],
+    ['9', '10', '11', '12'],
+    ['13'],
   ];
 
   const quickPoints = [
@@ -97,40 +114,84 @@ export function Numpad({ value, onChange, onEnter, onClose, onMove, rowIndex, co
         }}
       >
         
-        {/* Quick Points */}
-        <div className="space-y-2 mb-4">
-          {quickPoints.map((row, i) => (
-            <div key={i} className="grid grid-cols-3 gap-2 sm:gap-3">
-              {row.map((points) => (
-                <button
-                  key={points}
-                  onMouseDown={(e) => e.preventDefault()} // Prevent focus loss
-                  onClick={() => handleQuickPoint(points)}
-                  className={`h-10 sm:h-12 rounded-xl font-semibold text-sm sm:text-base transition-colors ${
-                    points > 0 
-                      ? 'bg-primary/10 text-primary hover:bg-primary/20' 
-                      : 'bg-destructive/10 text-destructive hover:bg-destructive/20'
-                  }`}
-                >
-                  {points > 0 ? '+' : ''}{points}
-                </button>
-              ))}
-            </div>
-          ))}
+        {/* Mode Toggle */}
+        <div className="flex justify-center mb-4">
+          <div className="bg-secondary/50 p-1 rounded-2xl flex gap-1 w-full max-w-[200px]">
+            <button
+              onClick={() => setMode('badam')}
+              className={`flex-1 py-1.5 rounded-xl text-sm font-bold transition-all ${
+                mode === 'badam' 
+                  ? 'bg-background text-primary shadow-sm' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Badam
+            </button>
+            <button
+              onClick={() => setMode('standard')}
+              className={`flex-1 py-1.5 rounded-xl text-sm font-bold transition-all ${
+                mode === 'standard' 
+                  ? 'bg-background text-primary shadow-sm' 
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              123
+            </button>
+          </div>
         </div>
 
+        {/* Quick Points */}
+        {!isBadamSatti && (
+          <div className="space-y-2 mb-4">
+            {quickPoints.map((row, i) => (
+              <div key={i} className="grid grid-cols-3 gap-2 sm:gap-3">
+                {row.map((points) => (
+                  <button
+                    key={points}
+                    onMouseDown={(e) => e.preventDefault()} // Prevent focus loss
+                    onClick={() => handleQuickPoint(points)}
+                    className={`h-10 sm:h-12 rounded-xl font-semibold text-sm sm:text-base transition-colors ${
+                      points > 0 
+                        ? 'bg-primary/10 text-primary hover:bg-primary/20' 
+                        : 'bg-destructive/10 text-destructive hover:bg-destructive/20'
+                    }`}
+                  >
+                    {points > 0 ? '+' : ''}{points}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Numpad Grid */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4">
-          {buttons.flat().map((btn) => (
-            <button
-              key={btn}
-              onClick={() => handleButton(btn)}
-              className="numpad-btn h-12 sm:h-14 md:h-16 text-lg sm:text-xl font-semibold"
-            >
-              {btn}
-            </button>
-          ))}
-        </div>
+        {mode === 'standard' ? (
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-3 sm:mb-4">
+            {standardButtons.flat().map((btn) => (
+              <button
+                key={btn}
+                onClick={() => handleButton(btn)}
+                className="numpad-btn h-12 sm:h-14 md:h-16 text-lg sm:text-xl font-semibold"
+              >
+                {btn}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-4">
+            {badamButtons.flat().map((btn) => (
+              <button
+                key={btn}
+                onClick={() => handleButton(btn)}
+                className={`numpad-btn h-12 sm:h-14 md:h-16 text-lg sm:text-xl font-semibold ${
+                  btn === '13' ? 'col-span-4' : ''
+                }`}
+              >
+                {btn}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Bottom Row */}
         <div className="grid grid-cols-2 gap-2 sm:gap-3">
