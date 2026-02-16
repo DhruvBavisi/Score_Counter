@@ -845,21 +845,23 @@ export default function NewMatch() {
     const cellRect = cell.getBoundingClientRect();
 
     const stickyColumnWidth = 64;
-    const stickyTotalWidth = 80;
-    const padding = 24;
+    const stickyTotalWidth = gameType === 'judgement' ? 80 : 0;
+    const padding = 16;
 
-    // Horizontal scroll with smooth behavior
-    const scrollOptions: ScrollToOptions = { behavior: 'smooth' };
-    
+    // Horizontal scroll - align to show full cell at the end
     if (cellRect.right > containerRect.right - stickyTotalWidth - padding) {
+      // Scroll so cell's right edge aligns with visible area's right edge (minus total column and padding)
+      const targetScrollLeft = container.scrollLeft + (cellRect.right - (containerRect.right - stickyTotalWidth - padding));
       container.scrollTo({
-        left: container.scrollLeft + (cellRect.right - (containerRect.right - stickyTotalWidth - padding)),
-        ...scrollOptions
+        left: targetScrollLeft,
+        behavior: 'smooth'
       });
     } else if (cellRect.left < containerRect.left + stickyColumnWidth + padding) {
+      // Scroll so cell's left edge is visible
+      const targetScrollLeft = container.scrollLeft - (containerRect.left + stickyColumnWidth + padding - cellRect.left);
       container.scrollTo({
-        left: container.scrollLeft - (containerRect.left + stickyColumnWidth + padding - cellRect.left),
-        ...scrollOptions
+        left: targetScrollLeft,
+        behavior: 'smooth'
       });
     }
 
@@ -877,14 +879,14 @@ export default function NewMatch() {
        const diff = cellRect.bottom - safeBottom;
        container.scrollTo({
          top: container.scrollTop + diff,
-         ...scrollOptions
+         behavior: 'smooth'
        });
     } 
     else if (cellRect.top < containerRect.top + stickyHeaderHeight) {
        const diff = (containerRect.top + stickyHeaderHeight) - cellRect.top;
        container.scrollTo({
          top: container.scrollTop - diff,
-         ...scrollOptions
+         behavior: 'smooth'
        });
     }
   };
@@ -1735,7 +1737,9 @@ export default function NewMatch() {
 
       <main className="flex-1 p-6 page-enter space-y-6 pb-6">
         {/* Score Table */}
-        <div className="overflow-auto -mx-6 px-0 pb-0 mobile-hide-scrollbar relative max-h-[70vh] bg-background" ref={scrollRef}>
+        <div className="overflow-auto -mx-6 px-0 pb-0 mobile-hide-scrollbar relative max-h-[70vh] bg-background" 
+             ref={scrollRef}
+             style={{ scrollBehavior: 'smooth' }}>
           <table className="w-full border-separate min-w-max no-border-spacing">
             <thead className="sticky top-0 z-50 bg-background shadow-none">
               <tr>
@@ -1829,7 +1833,9 @@ export default function NewMatch() {
                     </div>
                   </th>
                 ))}
-                <th className="sticky right-0 top-0 z-50 bg-background shadow-lg border-l-2 border-border border-b border-border p-2 text-center text-xs text-muted-foreground font-bold">TOTAL</th>
+                {gameType === 'judgement' && (
+                  <th className="sticky right-0 top-0 z-50 bg-background shadow-lg border-l-2 border-border border-b border-border p-2 text-center text-xs text-muted-foreground font-bold">TOTAL</th>
+                )}
               </tr>
             </thead>
               <tbody>
@@ -1860,16 +1866,18 @@ export default function NewMatch() {
                             </button>
                           </td>
                         ))}
-                        <td className="p-2 text-center sticky right-0 z-30 bg-background shadow-lg border-l-2 border-border font-bold">
-                          <div className="flex flex-col items-center">
-                            <span className="text-foreground">
-                              {predictions[rowIndex]?.reduce((sum, p) => sum + (p || 0), 0)}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground font-normal leading-none">
-                              ({predictions[rowIndex]?.filter((p) => p !== null && p !== undefined).length || 0}/{selectedPlayers.length})
-                            </span>
-                          </div>
-                        </td>
+                        {gameType === 'judgement' && (
+                          <td className="p-2 text-center sticky right-0 z-30 bg-background shadow-lg border-l-2 border-border font-bold">
+                            <div className="flex flex-col items-center">
+                              <span className="text-foreground">
+                                {predictions[rowIndex]?.reduce((sum, p) => sum + (p || 0), 0)}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground font-normal leading-none">
+                                ({predictions[rowIndex]?.filter((p) => p !== null && p !== undefined).length || 0}/{selectedPlayers.length})
+                              </span>
+                            </div>
+                          </td>
+                        )}
                       </tr>
                       <tr className={`${currentCell?.row === rowIndex ? 'bg-primary/5' : ''} ${
                         selectedPlayers.every((p, idx) => inactivePlayers.includes(p.id) || (predictions[rowIndex]?.[idx] !== null && predictions[rowIndex]?.[idx] !== undefined))
@@ -1915,14 +1923,16 @@ export default function NewMatch() {
                             </button>
                           </td>
                         ))}
-                        <td className="p-2 text-center sticky right-0 z-30 bg-background shadow-lg border-l-2 border-border font-bold">
-                          {results[rowIndex]?.some((r) => r !== null && r !== undefined) && (
-                            <div className="flex flex-col items-center">
-                              <span className="text-green-600">{results[rowIndex]?.filter(Boolean).length || 0}</span>
-                              <span className="text-[10px] text-muted-foreground font-normal leading-none">correct</span>
-                            </div>
-                          )}
-                        </td>
+                        {gameType === 'judgement' && (
+                          <td className="p-2 text-center sticky right-0 z-30 bg-background shadow-lg border-l-2 border-border font-bold">
+                            {results[rowIndex]?.some((r) => r !== null && r !== undefined) && (
+                              <div className="flex flex-col items-center">
+                                <span className="text-green-600">{results[rowIndex]?.filter(Boolean).length || 0}</span>
+                                <span className="text-[10px] text-muted-foreground font-normal leading-none">correct</span>
+                              </div>
+                            )}
+                          </td>
+                        )}
                       </tr>
                     </Fragment>
                   ) : (
@@ -1944,11 +1954,6 @@ export default function NewMatch() {
                           </button>
                         </td>
                       ))}
-                      <td className="p-2 text-center sticky right-0 z-30 bg-background shadow-lg border-l-2 border-border font-bold">
-                        <span className="text-muted-foreground text-sm font-normal">
-                          {round.reduce((sum, s) => sum + (s || 0), 0)}
-                        </span>
-                      </td>
                     </tr>
                   )
                 ))}
@@ -1979,7 +1984,6 @@ export default function NewMatch() {
                       </button>
                     </td>
                   ))}
-                  <td className="p-2 text-center sticky right-0 z-30 bg-background shadow-lg border-l-2 border-border font-bold" />
                 </tr>
               )}
               </tbody>
