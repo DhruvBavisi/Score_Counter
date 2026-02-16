@@ -786,7 +786,33 @@ export default function NewMatch() {
       }
     }
 
+    // Wrap around to check for missed cells
+    for (let nextCol = 0; nextCol < col; nextCol++) {
+      if (!inactivePlayers.includes(selectedPlayers[nextCol].id) && 
+          (results[row]?.[nextCol] === null || results[row]?.[nextCol] === undefined)) {
+        setCurrentCell({ row, col: nextCol, type: "points" });
+        setNumpadValue('');
+        scrollActiveCellIntoView(row, nextCol, "points");
+        return;
+      }
+    }
+
     setCurrentCell(null);
+    
+    // All results marked for this round - smooth scroll to start of points row
+    setTimeout(() => {
+      const firstCell = document.querySelector(
+        `button[data-row="${row}"][data-col="0"][data-type="points"]`
+      ) as HTMLButtonElement | null;
+      
+      if (firstCell) {
+        firstCell.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+          inline: 'center'
+        });
+      }
+    }, 100);
   };
 
   const openNumpad = (row: number, col: number) => {
@@ -967,7 +993,7 @@ export default function NewMatch() {
         }
 
         // If we reached the end but some cells are still empty, wrap around to the first empty cell
-        for (let nextCol = 0; nextCol <= col; nextCol++) {
+        for (let nextCol = 0; nextCol < col; nextCol++) {
           if (!inactivePlayers.includes(selectedPlayers[nextCol].id) && 
               (predictions[row]?.[nextCol] === null || predictions[row]?.[nextCol] === undefined)) {
             setCurrentCell({ row, col: nextCol, type: "prediction" });
@@ -978,8 +1004,20 @@ export default function NewMatch() {
         }
 
         setCurrentCell(null);
-        // Scroll to the end (Total column) when all predictions are filled
-        scrollActiveCellIntoView(row, col, type, true);
+        // All predictions filled for this round - smooth scroll to start
+        setTimeout(() => {
+          const firstCell = document.querySelector(
+            `button[data-row="${row}"][data-col="0"][data-type="prediction"]`
+          ) as HTMLButtonElement | null;
+          
+          if (firstCell) {
+            firstCell.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center',
+              inline: 'center'
+            });
+          }
+        }, 100);
       } else if (type === "points") {
         openResultMarking(row, col);
       }
@@ -1953,10 +1991,10 @@ export default function NewMatch() {
                   </td>
                 ))}
                 {gameType === 'judgement' && (
-                  <td className="p-2 text-center sticky right-0 z-50 bg-background shadow-lg border-l-2 border-border font-bold text-foreground">
-                    {totals.reduce((a, b) => a + b, 0)}
-                  </td>
-                )}
+                    <td className="p-2 text-center sticky right-0 z-50 bg-background shadow-lg border-l-2 border-border font-bold text-foreground">
+                      {totals.reduce((a, b) => a + b, 0)}
+                    </td>
+                  )}
               </tr>
             </tfoot>
           </table>
