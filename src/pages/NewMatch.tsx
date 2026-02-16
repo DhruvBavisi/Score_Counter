@@ -844,41 +844,48 @@ export default function NewMatch() {
     const containerRect = container.getBoundingClientRect();
     const cellRect = cell.getBoundingClientRect();
 
-    const stickyColumnWidth = 64; // matches your "Round" column width
-    const stickyTotalWidth = 80; // Estimate for "TOTAL" column width
+    const stickyColumnWidth = 64;
+    const stickyTotalWidth = 80;
     const padding = 24;
 
-    // Horizontal scroll — respect sticky column
+    // Horizontal scroll with smooth behavior
+    const scrollOptions: ScrollToOptions = { behavior: 'smooth' };
+    
     if (cellRect.right > containerRect.right - stickyTotalWidth - padding) {
-      container.scrollLeft += cellRect.right - (containerRect.right - stickyTotalWidth - padding);
+      container.scrollTo({
+        left: container.scrollLeft + (cellRect.right - (containerRect.right - stickyTotalWidth - padding)),
+        ...scrollOptions
+      });
     } else if (cellRect.left < containerRect.left + stickyColumnWidth + padding) {
-      container.scrollLeft -=
-        containerRect.left + stickyColumnWidth + padding - cellRect.left;
+      container.scrollTo({
+        left: container.scrollLeft - (containerRect.left + stickyColumnWidth + padding - cellRect.left),
+        ...scrollOptions
+      });
     }
 
-    // Vertical scroll
+    // Vertical scroll with smooth behavior
     const panel = document.getElementById('numpad-panel');
-    const panelHeight = panel ? panel.offsetHeight : 350; // Estimate
+    const panelHeight = panel ? panel.offsetHeight : 350;
     
     const viewportHeight = window.visualViewport?.height || window.innerHeight;
     const viewportOffsetTop = window.visualViewport?.offsetTop || 0;
     
-    // Visible area bottom (in viewport coordinates)
-    // Leave space above numpad
     const safeBottom = viewportHeight + viewportOffsetTop - panelHeight - 40;
-    
-    // Sticky header height inside container
     const stickyHeaderHeight = 40;
 
-    // If cell is below safe zone (covered by numpad)
     if (cellRect.bottom > safeBottom) {
        const diff = cellRect.bottom - safeBottom;
-       container.scrollTop += diff;
+       container.scrollTo({
+         top: container.scrollTop + diff,
+         ...scrollOptions
+       });
     } 
-    // If cell is above safe zone (covered by header)
     else if (cellRect.top < containerRect.top + stickyHeaderHeight) {
        const diff = (containerRect.top + stickyHeaderHeight) - cellRect.top;
-       container.scrollTop -= diff;
+       container.scrollTo({
+         top: container.scrollTop - diff,
+         ...scrollOptions
+       });
     }
   };
 
@@ -888,7 +895,7 @@ export default function NewMatch() {
       // Small delay to allow Numpad to mount/render
       const timer = setTimeout(() => {
         scrollActiveCellIntoView(currentCell.row, currentCell.col, currentCell.type);
-      }, 100);
+      }, 150);
       return () => clearTimeout(timer);
     }
   }, [currentCell]);
@@ -1836,11 +1843,11 @@ export default function NewMatch() {
                             <button
                               onClick={() => !gameFinished && openCell(rowIndex, colIndex)}
                               disabled={gameFinished || inactivePlayers.includes(selectedPlayers[colIndex].id) || results[rowIndex]?.[colIndex] !== null}
-                              className={`w-full h-12 rounded-xl font-display font-bold text-lg transition-all ${
+                              className={`w-full h-12 rounded-xl font-display font-bold text-lg transition-all duration-200 ${
                                 results[rowIndex]?.[colIndex] === true ? 'bg-green-600/10' : 
                                 results[rowIndex]?.[colIndex] === false ? 'bg-red-600/10' : 
                                 'bg-secondary'
-                              } text-foreground hover:bg-secondary/80 flex items-center justify-center gap-1 ${gameFinished || inactivePlayers.includes(selectedPlayers[colIndex].id) ? 'cursor-default opacity-50' : ''} ${currentCell?.col === colIndex && currentCell?.row === rowIndex && currentCell?.type === 'prediction' ? 'ring-2 ring-primary/50 border-transparent' : ''}`}
+                              } text-foreground hover:bg-secondary/80 flex items-center justify-center gap-1 ${gameFinished || inactivePlayers.includes(selectedPlayers[colIndex].id) ? 'cursor-default opacity-50' : ''} ${currentCell?.col === colIndex && currentCell?.row === rowIndex && currentCell?.type === 'prediction' ? 'ring-2 ring-primary/50 border-transparent scale-105' : 'scale-100'}`}
                               data-row={rowIndex}
                               data-col={colIndex}
                               data-type="prediction"
@@ -1891,10 +1898,10 @@ export default function NewMatch() {
                                 }
                               }}
                               disabled={gameFinished || inactivePlayers.includes(selectedPlayers[colIndex].id) || predictions[rowIndex]?.[colIndex] === null}
-                              className={`w-full h-12 rounded-xl font-bold transition-all ${
+                              className={`w-full h-12 rounded-xl font-bold transition-all duration-200 ${
                                 currentCell?.row === rowIndex && currentCell?.col === colIndex && currentCell?.type === 'points'
-                                  ? "ring-2 ring-primary/50"
-                                  : ""
+                                  ? "ring-2 ring-primary/50 scale-105"
+                                  : "scale-100"
                               } ${
                                 results[rowIndex]?.[colIndex] === true ? "bg-green-600/10" : 
                                 results[rowIndex]?.[colIndex] === false ? "bg-red-600/10" : 
@@ -1926,7 +1933,7 @@ export default function NewMatch() {
                           <button
                             onClick={() => !gameFinished && openNumpad(rowIndex, colIndex)}
                             disabled={gameFinished || inactivePlayers.includes(selectedPlayers[colIndex].id)}
-                            className={`w-full h-12 rounded-xl font-display font-bold text-lg transition-all bg-secondary text-foreground hover:bg-secondary/80 ${gameFinished || inactivePlayers.includes(selectedPlayers[colIndex].id) ? 'cursor-default opacity-50' : ''} ${currentCell?.col === colIndex && currentCell?.row === rowIndex ? 'ring-2 ring-primary/50' : ''}`}
+                            className={`w-full h-12 rounded-xl font-display font-bold text-lg transition-all duration-200 bg-secondary text-foreground hover:bg-secondary/80 ${gameFinished || inactivePlayers.includes(selectedPlayers[colIndex].id) ? 'cursor-default opacity-50' : ''} ${currentCell?.col === colIndex && currentCell?.row === rowIndex ? 'ring-2 ring-primary/50 scale-105' : 'scale-100'}`}
                             data-row={rowIndex}
                             data-col={colIndex}
                             data-type="score"
@@ -2077,5 +2084,3 @@ export default function NewMatch() {
     </div>
   );
 }
-
-
